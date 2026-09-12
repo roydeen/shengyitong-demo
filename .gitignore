@@ -1,4 +1,5 @@
 node_modules/
 .sites-runtime/
+.openai/
 *.tsbuildinfo
 .DS_Store
