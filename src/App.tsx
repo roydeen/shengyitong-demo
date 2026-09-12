@@ -111,6 +111,7 @@ const tools: Array<[string, LucideIcon]> = [
 const reportScenarioId = 'report-channel-persisted'
 const pinnedReportKey = 'shengyitong:pinned-report:channel-profit'
 const pinnedReportEvent = 'shengyitong:pinned-report-changed'
+const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
 const channelReport: ReportArtifact = {
   title: '近7天渠道毛利与退款分析报表',
   href: '#/reports/channel-profit',
@@ -536,9 +537,9 @@ function ReportPage({ report, pinned, onPin }: { report: ReportArtifact; pinned:
     <div className="report-page">
       <header className="report-topbar">
         <div className="report-brand">
-          <img className="report-robot-logo" src="/shengyitong-robot-logo.png" alt="" />
+          <img className="report-robot-logo" src={assetUrl('shengyitong-robot-logo.png')} alt="" />
           <div className="report-brand-copy">
-            <img className="report-text-logo" src="/shengyitong-text-logo.png" alt="盛意通" />
+            <img className="report-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
             <small>AI经营平台</small>
           </div>
         </div>
@@ -802,9 +803,9 @@ export default function App() {
     <div className={`ai-shell ${rightOpen ? '' : 'without-context'}`}>
       <aside className={`left-rail ${leftOpen ? 'is-open' : ''}`}>
         <div className="brand-row">
-          <span className="brand-mark"><img src="/shengyitong-robot-logo.png" alt="盛意通" /></span>
+          <span className="brand-mark"><img src={assetUrl('shengyitong-robot-logo.png')} alt="盛意通" /></span>
           <div className="brand-copy">
-            <img className="brand-text-logo" src="/shengyitong-text-logo.png" alt="盛意通" />
+            <img className="brand-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
             <small>AI经营平台</small>
           </div>
           <button className="icon-btn close-mobile" aria-label="关闭菜单" onClick={() => setLeftOpen(false)}><X size={19} /></button>
