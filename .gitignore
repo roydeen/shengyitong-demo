@@ -3,3 +3,4 @@ node_modules/
 .openai/
 *.tsbuildinfo
 .DS_Store
+local-preview*.log
