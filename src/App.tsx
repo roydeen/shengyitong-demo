@@ -132,6 +132,7 @@ const reportScenarioId = 'report-channel-persisted'
 const pinnedReportKey = 'shengyitong:pinned-report:channel-profit'
 const pinnedReportEvent = 'shengyitong:pinned-report-changed'
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
+const publicCampaignBaseUrl = 'https://roydeen.github.io/shengyitong-demo/'
 const channelReport: ReportArtifact = {
   title: '近7天渠道毛利与退款分析报表',
   href: '#/reports/channel-profit',
@@ -920,7 +921,10 @@ function ReportPage({ report, pinned, onPin }: { report: ReportArtifact; pinned:
 
 function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; onSavePoster: () => void }) {
   const [qrOpen, setQrOpen] = useState(false)
-  const shareUrl = typeof window === 'undefined' ? page.href : window.location.href
+  const pageSearch = typeof window === 'undefined' ? '' : window.location.search
+  const hashSearch = typeof window === 'undefined' ? '' : (window.location.hash.split('?')[1] ?? '')
+  const isSharePage = new URLSearchParams(pageSearch).get('share') === '1' || new URLSearchParams(hashSearch).get('share') === '1'
+  const shareUrl = `${publicCampaignBaseUrl}?share=1${page.href}`
   const qrPreviewUrl = `https://api.qrserver.com/v1/create-qr-code/?size=92x92&margin=6&data=${encodeURIComponent(shareUrl)}`
   const qrLargeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(shareUrl)}`
   const shareCampaign = async () => {
@@ -940,33 +944,35 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
   }
 
   return (
-    <div className="campaign-page">
-      <header className="report-topbar">
-        <div className="report-brand">
-          <img className="report-robot-logo" src={assetUrl('shengyitong-robot-logo.png')} alt="" />
-          <div className="report-brand-copy">
-            <img className="report-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
-            <small>AI经营平台</small>
+    <div className={`campaign-page ${isSharePage ? 'campaign-share-page' : ''}`}>
+      {!isSharePage && (
+        <header className="report-topbar">
+          <div className="report-brand">
+            <img className="report-robot-logo" src={assetUrl('shengyitong-robot-logo.png')} alt="" />
+            <div className="report-brand-copy">
+              <img className="report-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
+              <small>AI经营平台</small>
+            </div>
           </div>
-        </div>
-        <div className="report-top-title">
-          <strong>{page.title}</strong>
-          <small>{page.campaign} · AI 已生成</small>
-        </div>
-        <div className="campaign-top-actions">
-          <button className="report-pin-button" onClick={onSavePoster}>
-            <ImageIcon size={15} />
-            生成海报
-          </button>
-          <button className="report-pin-button" onClick={() => navigator.clipboard?.writeText(shareUrl)}>
-            <Copy size={15} />
-            复制页面链接
-          </button>
-          <button className="campaign-qr-button" type="button" onClick={() => setQrOpen(true)} aria-label="放大二维码">
-            <img src={qrPreviewUrl} alt="" />
-          </button>
-        </div>
-      </header>
+          <div className="report-top-title">
+            <strong>{page.title}</strong>
+            <small>{page.campaign} · AI 已生成</small>
+          </div>
+          <div className="campaign-top-actions">
+            <button className="report-pin-button" onClick={onSavePoster}>
+              <ImageIcon size={15} />
+              生成海报
+            </button>
+            <button className="report-pin-button" onClick={() => navigator.clipboard?.writeText(shareUrl)}>
+              <Copy size={15} />
+              复制页面链接
+            </button>
+            <button className="campaign-qr-button" type="button" onClick={() => setQrOpen(true)} aria-label="放大二维码">
+              <img src={qrPreviewUrl} alt="" />
+            </button>
+          </div>
+        </header>
+      )}
 
       <main className="campaign-canvas">
         <section className="mobile-campaign-frame" aria-label="移动端活动页预览">
@@ -1324,7 +1330,7 @@ export default function App() {
     )
   }
 
-  if (window.location.hash === '#/campaigns/spring-salad') {
+  if (window.location.hash.split('?')[0] === '#/campaigns/spring-salad') {
     return (
       <>
         <MarketingPage page={springSaladCampaign} onSavePoster={() => notify('已生成海报，可用于朋友圈和门店物料')} />
