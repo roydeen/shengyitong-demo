@@ -64,6 +64,14 @@ type MarketingPageArtifact = {
 type CreativeOutput = {
   markdown: string
 }
+type CopyShareTargetId = 'wechat-moments' | 'douyin' | 'xiaohongshu'
+type CopyShareTarget = {
+  id: CopyShareTargetId
+  action: string
+  appName: string
+  title: string
+  text: string
+}
 type UsageState = {
   fixed: boolean
   useCount: number
@@ -133,6 +141,32 @@ const pinnedReportKey = 'shengyitong:pinned-report:channel-profit'
 const pinnedReportEvent = 'shengyitong:pinned-report-changed'
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
 const publicCampaignBaseUrl = 'https://roydeen.github.io/shengyitong-demo/'
+const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.png`
+const copyShareTargets: CopyShareTarget[] = [
+  {
+    id: 'wechat-moments',
+    action: '分享到朋友圈',
+    appName: '微信',
+    title: '今天午餐，吃轻一点',
+    text: '杭州西湖店今日轻食套餐已上新：鸡胸、牛油果、时蔬和青提茉莉，清爽但不寡淡。午高峰前下单，会员可领满减券。',
+  },
+  {
+    id: 'douyin',
+    action: '分享到抖音',
+    appName: '抖音',
+    title: '杭州西湖店午餐 15 分钟出餐',
+    text: '不想吃太油，又不想饿着？今天试试这份轻食套餐。现做、可自提、可外卖，结尾领券更划算。',
+  },
+  {
+    id: 'xiaohongshu',
+    action: '分享到小红书',
+    appName: '小红书',
+    title: '西湖边上班族的低负担午餐',
+    text: '这份轻食不会只有草。鸡胸够嫩，牛油果增加饱腹感，青提茉莉清爽解腻，适合下午还要开会、不想犯困的时候。',
+  },
+]
+const getCopyShareUrl = (target: CopyShareTarget) =>
+  `${publicCampaignBaseUrl}?copy_share=1&platform=${target.id}&title=${encodeURIComponent(target.title)}&text=${encodeURIComponent(target.text)}&image=${encodeURIComponent(copyShareImageUrl)}`
 const channelReport: ReportArtifact = {
   title: '近7天渠道毛利与退款分析报表',
   href: '#/reports/channel-profit',
@@ -148,11 +182,19 @@ const channelReport: ReportArtifact = {
 }
 
 const springSaladCampaign: MarketingPageArtifact = {
-  title: '春日轻食会员唤醒页',
+  title: '工作日午餐会员领券页',
   href: '#/campaigns/spring-salad',
   campaign: '工作日午餐轻食套餐',
-  coupon: '满 39 减 8 元新人/会员券',
-  description: '面向私域好友、小红书种草和抖音同城引流生成的营销页面，可转成海报，也可让顾客登录或输入手机号领券。',
+  coupon: '满 39 减 8 元午餐券',
+  description: '面向微信私域生成的活动领取页，顾客扫码或点击进入后领券，到店微信支付时自动抵扣，商户可查看领取、核销和支付复盘。',
+}
+
+const weekendBanquetCampaign: MarketingPageArtifact = {
+  title: '周末宴请会员领券页',
+  href: '#/campaigns/weekend-banquet',
+  campaign: '周末雅宴团圆礼',
+  coupon: '满 499 减 80 元宴请券',
+  description: '面向周末家庭聚餐和商务宴请生成的活动领取页，顾客扫码或点击进入后领券，到店消费时按天财商龙营销规则核销。',
 }
 
 const scenarios: Scenario[] = [
@@ -216,7 +258,7 @@ const scenarios: Scenario[] = [
     id: 'copy-platform',
     kind: '营销活动类',
     title: '生成平台文案海报',
-    question: '帮我给杭州西湖店做一组轻食午餐文案，分别适合朋友圈、小红书和抖音，也给出海报方向。',
+    question: '帮我做一组轻食午餐推广文案，分别用于朋友圈、小红书和抖音发布，再给我一个适合转发的 3:4 竖版海报。',
     starter: '做朋友圈宣传海报',
     time: '刚刚',
     icon: PenLine,
@@ -224,7 +266,7 @@ const scenarios: Scenario[] = [
     steps: [
       ['识别商户性质', '轻餐门店，核心卖点是低负担午餐、现做食材和会员复购'],
       ['匹配平台语气', '朋友圈偏熟人转化，小红书偏种草笔记，抖音偏同城短视频钩子'],
-      ['输出文案与海报方向', '每个平台给出标题、正文、行动引导和画面重点'],
+      ['输出文案与海报', '每个平台给出标题、正文、行动引导和画面重点'],
     ],
     summary: '已生成 3 组平台化文案。朋友圈强调“今天吃轻一点”的即时下单，小红书强调真实配料和低负担体验，抖音强调同城午餐场景和限时福利。',
     creativeOutput: {
@@ -289,12 +331,12 @@ const scenarios: Scenario[] = [
       ['抖音', '同城短视频钩子', '出餐效率 + 限时福利', '适合投流测试'],
       ['门店海报', '统一主视觉', '产品图 + 优惠券', '可下载'],
     ],
-    nextActions: ['复制朋友圈文案', '生成小红书笔记', '生成抖音脚本', '保存海报方向'],
+    nextActions: ['复制朋友圈文案', '生成小红书笔记', '生成抖音脚本', '保存海报'],
     context: {
       updatedAt: '11:05',
       permissions: [
         ['可读取', '门店定位、菜品卖点、历史活动'],
-        ['可生成', '朋友圈文案、小红书笔记、抖音脚本、海报方向'],
+        ['可生成', '朋友圈文案、小红书笔记、抖音脚本、海报'],
         ['需批准', '自动发布、投放预算、短信触达'],
       ],
       references: [
@@ -307,77 +349,86 @@ const scenarios: Scenario[] = [
     id: 'marketing-page',
     kind: '营销活动类',
     title: '工作日午餐营销活动',
-    question: '帮我生成一个工作日午餐轻食营销页，有文案和内容，最后能让顾客登录或输入手机号领券。',
-    starter: '做领券活动页面',
+    question: '帮我做一个工作日午餐领券活动，主要发到微信群和朋友圈，最后能看活动效果。',
+    starter: '做工作日午餐领券活动',
     time: '刚刚',
     icon: Megaphone,
-    intro: '我会把活动目标、目标客群、页面结构和领券方式先组织好，再生成一个可打开预览的营销页面。',
+    intro: '我会把活动目标、客群、优惠券、领取页、微信支付核销和复盘报表串成一条链路，先生成可预览方案，发布动作仍需商户确认。',
     steps: [
-      ['确认活动目标', '提升工作日 11:00-13:00 午餐转化，优先拉新和会员复购'],
-      ['生成页面结构', '首屏卖点、套餐内容、适合人群、门店信息、领券入口'],
-      ['配置领券方式', '支持登录领取，也支持输入手机号领取，后续可接会员系统'],
-      ['生成可保存页面', '营销页已生成，可另存为海报用于微信群、朋友圈和门店物料'],
+      ['理解一句话目标', '识别“工作日午餐、微信私域、领券、到店支付抵扣、复盘”五个关键意图'],
+      ['生成活动方案', '锁定西湖店周边上班族和老会员，主推 11:00-13:00 轻食套餐'],
+      ['配置优惠券草案', '满 39 减 8，微信领取，工作日午餐时段可用，到店微信支付自动抵扣'],
+      ['生成领取页面', '生成手机端活动页、分享链接和二维码，可投放到微信群、朋友圈和门店物料'],
+      ['建立追踪复盘', '记录访问、领券、核销、支付回调和优惠抵扣金额，沉淀活动报表'],
     ],
-    summary: '已生成“春日轻食会员唤醒页”。页面末尾包含优惠券领取模块，适合顾客登录领取或输入手机号领取，也可以保存成海报转发。',
+    summary: '已生成“工作日午餐会员领券页”草案，并把优惠券、微信领取、支付自动抵扣、日志和复盘报表串成完整业务链路。正式发券库存、触达会员和上线发布仍需店长确认。',
     creativeOutput: {
       markdown: `## 工作日午餐营销活动
 
-我先按“午餐转化”这个目标拆了一版活动方案，聊天里只输出 Markdown 内容；可打开的结果页单独放在下方入口里。
+已为你生成“工作日午餐营销活动”，并创建“满39减8元午餐券”的活动文案。领取页已经生成，可直接打开查看，后续正式发券和上线仍需店长确认。
 
 ### 活动目标
 
-- **主目标：** 提升工作日 11:00-13:00 午餐转化
-- **适合渠道：** 朋友圈、微信群、小红书主页链接、抖音同城私信承接
-- **核心人群：** 西湖店周边上班族、老会员、午餐时间紧张但想吃清爽的人
+- **目标人群：** 杭州西湖店周边上班族、老会员、近 30 天未复购顾客
+- **活动时间：** 工作日 11:00-14:00
+- **核心目的：** 拉动午餐时段转化，并把顾客沉淀到微信私域
 
-### 页面内容建议
+### 活动内容
 
-- **首屏文案：** 工作日午餐，吃轻一点也吃饱一点
-- **套餐卖点：** 现做鸡胸、牛油果、时蔬和青提茉莉组合，清爽、饱腹、不费脑
-- **转化动作：** 老会员登录领取，新顾客输入手机号领取
+- **主标题：** 工作日午餐，吃轻一点也吃饱一点
+- **套餐卖点：** 鸡胸、牛油果、时蔬和青提茉莉，清爽、饱腹、不费脑
+- **优惠设置：** 满39减8元午餐券
+- **领取方式：** 顾客通过微信内 H5 / 小程序入口领取，券进入微信卡包
 
-### 优惠券设计
+### 私域转发文案
 
-- **券名称：** 工作日午餐轻食券
-- **券规则：** 满 39 减 8
-- **使用建议：** 午高峰前推送，优先覆盖 10:30-11:30 的私域触达
+今天午餐想吃清爽一点，可以试试杭州西湖店的轻食套餐。
+工作日午餐券已上线，满 39 减 8，数量有限，领完可到店或下单使用。
 
-### 运营判断
+### 系统配置
 
-这个活动更适合作为轻量拉新和会员唤醒，不建议一开始做过重的满减。先用小额券验证点击、领券和下单转化，再决定是否扩大到美团、淘宝闪购等平台。`,
+- 已经生成活动“工作日午餐营销活动”成功
+- 已经生成券“满39减8元午餐券”成功
+- 券“满39减8元午餐券”与活动“工作日午餐营销活动”关联成功
+
+### 运营建议
+
+这类活动适合作为小商户私域营销的标准入口：先用轻量优惠券验证领券和核销转化，再根据复盘结果决定是否扩大投放。`,
     },
     findings: [
       {
         tone: 'info',
-        label: '页面策略',
-        meta: '午餐场景',
-        title: '先讲为什么今天要买，再给明确优惠',
-        body: '首屏不堆功能，直接表达“工作日午餐轻一点”。中段展示套餐内容和适合人群，底部用优惠券完成转化。',
+        label: '链路生成',
+        meta: '活动页 + 优惠券 + 支付',
+        title: '一句话任务可以拆成多个可控业务组件',
+        body: '大模型负责理解目标和生成内容，优惠券、支付抵扣、日志和报表由固定业务组件承接，这样既能保留自然语言入口，也能保证落地流程稳定。',
         evidence: [
           ['活动页面', LayoutDashboard],
           ['优惠券配置', TicketPercent],
+          ['微信支付核销', WalletCards],
         ],
       },
       {
         tone: 'opportunity',
-        label: '转化设计',
-        meta: '登录 / 手机号',
-        title: '领券入口要兼容老会员和新顾客',
-        body: '老会员可以登录领取，新顾客可输入手机号领取。领取成功后进入会员池，后续可做复购提醒和活动效果分析。',
+        label: '经营复盘',
+        meta: '领取 / 核销 / 实付',
+        title: '活动价值不止是生成页面，而是能追踪到支付结果',
+        body: '顾客领券后到店微信支付，系统能记录抵扣金额、实付金额和活动来源。商户在盛意旺 APP 里看到的不只是订单，还能看到活动是否带来真实转化。',
       },
     ],
     marketingPage: springSaladCampaign,
-    nextActions: ['打开营销页', '保存成海报', '配置优惠券库存', '生成朋友圈转发文案'],
+    nextActions: ['打开领取页', '配置发券库存', '生成微信群文案', '查看活动复盘'],
     context: {
       updatedAt: '11:08',
       permissions: [
-        ['可读取', '菜品、门店、会员活动、优惠券模板'],
-        ['可生成', '营销页、活动文案、海报、领券表单'],
-        ['需批准', '正式发布、发券库存、触达会员'],
+        ['可读取', '菜品、门店、会员、优惠券模板、支付订单'],
+        ['可生成', '活动页、私域文案、分享二维码、复盘报表'],
+        ['需批准', '正式发券、触达会员、上线发布、预算调整'],
       ],
       references: [
         ['营销页组件库', '首屏、卖点、领券模块', LayoutDashboard],
-        ['优惠券规则', '满减券、领取限制', TicketPercent],
+        ['优惠券系统', '券批次、库存、核销规则', TicketPercent],
+        ['微信支付记录', '实付、抵扣、退款', WalletCards],
       ],
     },
   },
@@ -446,57 +497,105 @@ const scenarios: Scenario[] = [
   },
   {
     id: 'analysis-reusable-page',
-    kind: '数据报表类',
-    title: '生成固定分析页',
-    question: '帮我生成一个本周渠道经营分析页，后续我能反复打开，并固定到常用功能。',
-    starter: '做可复用分析页',
+    kind: '营销活动类',
+    title: '周末宴请营销活动',
+    question: '请为我生成一个周末的营销活动。',
+    starter: '生成周末营销活动',
     time: '刚刚',
-    icon: BarChart3,
-    intro: '我会先把分析口径固化，再生成独立页面。页面生成后可以在会话里打开，也可以固定到常用功能，后续反复查看。',
+    icon: Megaphone,
+    intro: '我会按“内容生成 + 天财商龙主系统落库”的方式处理：文案和图片由 AI 生成，会员、营销活动、优惠券和核销信息继续以天财商龙 SaaS 为准。',
     steps: [
-      ['固化分析口径', '明确收入、毛利、退款和活动成本的计算方式'],
-      ['生成独立页面', '把结论、明细表和建议动作保存成可访问页面'],
-      ['建立复用入口', '报表页支持固定到常用功能，后续不需要重新提问'],
+      ['识别营销目标', '判断为周末中餐宴请场景，目标客群是家庭聚餐、商务宴请和老客复购'],
+      ['生成活动内容', '已生成活动标题、朋友圈文案、小红书文案、抖音脚本和 3:4 宴请海报图'],
+      ['创建天财商龙活动', '已通过联调接口写入活动基础信息：门店、时间、渠道、活动名称和活动说明'],
+      ['创建天财商龙优惠券', '已通过联调接口写入满499减80元宴请券基础信息：券名称、门槛、减免金额和有效期'],
+      ['关联活动与券', '已把周末宴请营销活动与满499减80元宴请券完成关联，后续领取、核销和报表仍走天财商龙'],
     ],
-    summary: '已生成一个可反复查看的渠道经营分析页。它不是一次性聊天回答，而是业务组件化的分析结果，可以被固定、复用和作为经营例会入口。',
+    summary: '已生成活动“周末宴请营销活动”成功；已生成券“满499减80元宴请券”成功；券“满499减80元宴请券”与活动“周末宴请营销活动”关联成功。系统已判断该商户使用天财商龙营销链路，会员、活动、券和核销数据仍由天财商龙 SaaS 承接。',
+    creativeOutput: {
+      markdown: `## 周末宴请营销活动
+
+我先按周末中餐宴请场景生成一版活动。系统已识别该商户的营销链路配置为天财商龙，所以会员、营销活动、优惠券和后续核销数据都会继续进入天财商龙 SaaS。
+
+### 活动文案
+
+- **活动名称：** 周末雅宴 · 老友团圆礼
+- **适用场景：** 家庭聚餐、商务宴请、朋友小聚、老客复购
+- **主推卖点：** 包间氛围、招牌宴请菜、提前预订、周末到店更从容
+- **优惠券：** 满499减80元宴请券
+- **行动引导：** 提前预订周末餐位，领取宴请券后到店使用
+
+### 朋友圈文案
+
+这个周末适合约一顿认真吃的中餐。
+招牌烤鸭、清蒸鱼、点心和热茶都备好了，适合家庭聚餐、朋友小聚，也适合商务宴请。提前预订并领取满499减80元宴请券，到店用餐更划算。
+
+### 小红书文案
+
+周末想找一家适合请客、不踩雷的中餐厅，可以看这家。包间环境安静，菜品有仪式感，烤鸭、清蒸鱼和点心都适合多人分享。适合家庭聚餐、客户宴请和朋友小聚，提前领券再订位会更合适。
+
+### 抖音脚本
+
+周末请客不知道去哪？
+一桌高级中餐宴请安排好：烤鸭、清蒸鱼、点心、热茶和包间氛围。
+现在领取满499减80元宴请券，周末到店用餐直接抵扣。
+
+### 海报图片
+
+![高级中餐宴请](campaign-premium-banquet-3x4.png)
+
+### 系统配置
+
+- 已在天财商龙中为你生成“周末宴请营销活动”成功
+- 已在天财商龙中生成“满499减80元宴请券”成功
+- 已将“满499减80元宴请券”与“周末宴请营销活动”关联成功
+- 会员、领券、核销和活动复盘数据将继续以天财商龙 SaaS 为准`,
+    },
     findings: [
       {
         tone: 'info',
-        label: '复用价值',
-        meta: '固定页面',
-        title: '高频经营分析适合沉淀成固定业务页面',
-        body: '一次性问答适合解释问题；但周报、日报、渠道复盘这类重复任务，更适合生成固定页面，后续直接打开查看最新口径。',
+        label: '系统边界',
+        meta: '天财商龙为主系统',
+        title: '会员、活动和优惠券不在 Agent 侧重复建设',
+        body: '商户原有会员、营销活动、优惠券、核销和报表仍保留在天财商龙 SaaS。Agent 负责把商户一句话转成活动方案、文案、图片和接口参数，避免形成两套业务数据。',
         evidence: [
-          ['经营分析页', FileText],
-          ['固定入口', Pin],
+          ['活动基础信息', Megaphone],
+          ['优惠券基础信息', TicketPercent],
         ],
       },
       {
         tone: 'opportunity',
-        label: '产品形态',
-        meta: 'Agent + 业务组件',
-        title: 'AI 负责判断和组织，页面负责稳定呈现',
-        body: 'AI 输出结论、异常判断和建议动作；固定页面承载表格、指标和操作入口。这样既保留 AI 灵活性，也避免让聊天框承载过复杂的 UI。',
+        label: '联调价值',
+        meta: '内容 + 接口',
+        title: '营销 Agent 的价值在于把内容和系统配置串起来',
+        body: '商户不需要分别找文案、做海报、再进后台建活动和券。Agent 生成内容后，将活动名称、时间、门店、券规则和渠道参数组装成天财商龙接口所需字段，减少后台操作成本。',
       },
     ],
     metrics: [
-      ['可复用页面', '1 个', '已生成', 'up'],
-      ['分析口径', '4 项', '已固化', 'flat'],
-      ['固定入口', '支持', '常用功能', 'up'],
-      ['更新方式', '可重跑', '按最新数据', 'flat'],
+      ['活动基础信息', '已创建', '天财商龙', 'up'],
+      ['优惠券基础信息', '已创建', '满499减80', 'up'],
+      ['内容素材', '已生成', '文案 + 图片', 'flat'],
+      ['数据主系统', '天财商龙', '会员 / 券 / 核销', 'flat'],
     ],
-    report: channelReport,
-    nextActions: ['打开分析页', '固定到常用功能', '设为每周经营例会入口'],
+    table: [
+      ['活动', '周末宴请营销活动', '写入天财商龙活动基础信息', '成功'],
+      ['优惠券', '满499减80元宴请券', '写入天财商龙优惠券基础信息', '成功'],
+      ['内容素材', '朋友圈、小红书、抖音文案与宴请海报', '由 AI 生成', '成功'],
+      ['数据归属', '会员、券、核销、报表', '继续使用天财商龙 SaaS', '已确认'],
+    ],
+    marketingPage: weekendBanquetCampaign,
+    nextActions: ['查看天财商龙活动记录', '查看优惠券基础信息', '生成平台分享二维码'],
     context: {
       updatedAt: '11:12',
       permissions: [
-        ['可读取', '订单、退款、成本、平台账单'],
-        ['可生成', '经营分析页、指标表、异常判断'],
-        ['需批准', '调整活动、导出明细、批量通知'],
+        ['可读取', '门店、菜品卖点、活动模板、优惠券模板'],
+        ['可生成', '朋友圈文案、小红书文案、抖音脚本、海报图片'],
+        ['可调用', '天财商龙活动创建接口、优惠券基础信息接口、活动券关联接口'],
+        ['需批准', '正式发布活动、批量触达会员、修改天财商龙库存和券规则'],
       ],
       references: [
-        ['固定分析页模板', '指标、明细、建议动作', LayoutDashboard],
-        ['经营口径配置', '收入、毛利、退款、成本', Database],
+        ['天财商龙活动接口', '活动名称、门店、时间、渠道', Database],
+        ['天财商龙优惠券接口', '券名称、门槛、减免、有效期', TicketPercent],
       ],
     },
   },
@@ -730,73 +829,25 @@ const historySessions: HistorySession[] = [
     id: 'history-marketing-page',
     title: '工作日午餐营销活动',
     scenarioId: 'marketing-page',
-    prompt: '帮我生成一个工作日午餐轻食营销页，有文案和内容，最后能让顾客登录或输入手机号领券。',
+    prompt: '帮我做一个工作日午餐领券活动，主要发到微信群和朋友圈，最后能看活动效果。',
     time: '刚刚',
-    summary: '已生成可打开的营销领券页',
+    summary: '已生成领券、核销和复盘链路',
   },
   {
     id: 'history-copy-platform',
     title: '朋友圈小红书抖音文案',
     scenarioId: 'copy-platform',
-    prompt: '帮我给杭州西湖店做一组轻食午餐文案，分别适合朋友圈、小红书和抖音，也给出海报方向。',
+    prompt: '帮我做一组轻食午餐推广文案，分别用于朋友圈、小红书和抖音发布，再给我一个适合转发的 3:4 竖版海报。',
     time: '刚刚',
-    summary: '按平台生成文案和海报方向',
+    summary: '按平台生成文案和海报',
   },
   {
     id: 'history-analysis-reusable',
-    title: '固定复用经营分析页',
+    title: '周末宴请营销活动',
     scenarioId: 'analysis-reusable-page',
-    prompt: '帮我生成一个本周渠道经营分析页，后续我能反复打开，并固定到常用功能。',
+    prompt: '请为我生成一个周末的营销活动。',
     time: '刚刚',
-    summary: '沉淀成可反复打开的分析页',
-  },
-  {
-    id: 'history-report-artifact',
-    title: '近7天渠道毛利与退款分析报表',
-    scenarioId: reportScenarioId,
-    prompt: '帮我获取近7天各渠道毛利和退款报表，判断异常原因，并生成一个以后可以持续查看的报表。',
-    time: '刚刚',
-    summary: '已生成可持久查看的渠道经营报表',
-  },
-  {
-    id: 'history-1',
-    title: '复盘淘宝闪购退款',
-    scenarioId: 'operation-sync',
-    prompt: '帮我复盘今天上午淘宝闪购退款为什么变多，需要我现在处理什么？',
-    time: '刚刚',
-    summary: '定位到青提茉莉售罄状态未同步',
-  },
-  {
-    id: 'history-2',
-    title: '今日毛利和渠道报表',
-    scenarioId: 'report-profit',
-    prompt: '今天到现在的毛利和外卖渠道表现如何？把异常项先列出来。',
-    time: '10 分钟前',
-    summary: '外卖占比上升，毛利率被满减拉低',
-  },
-  {
-    id: 'history-3',
-    title: '下周排班和备货草案',
-    scenarioId: 'forecast-schedule',
-    prompt: '根据最近经营状况，为我安排下周排班和备货。',
-    time: '昨天',
-    summary: '午高峰提前，周五晚高峰风险较高',
-  },
-  {
-    id: 'history-4',
-    title: '会员储值一期边界',
-    scenarioId: 'function-member',
-    prompt: '会员储值一期应该支持哪些功能？哪些必须进二期？',
-    time: '9月10日',
-    summary: '一期覆盖充值、消费扣款、退款回退和对账',
-  },
-  {
-    id: 'history-5',
-    title: '低毛利套餐优化',
-    scenarioId: 'report-profit',
-    prompt: '找一下最近一周低毛利但销量高的套餐，给我调整建议。',
-    time: '9月9日',
-    summary: '两款外卖套餐需要重算满减后毛利',
+    summary: '已生成宴请活动和优惠券',
   },
 ]
 
@@ -826,7 +877,7 @@ function ReportPage({ report, pinned, onPin }: { report: ReportArtifact; pinned:
           <img className="report-robot-logo" src={assetUrl('shengyitong-robot-logo.png')} alt="" />
           <div className="report-brand-copy">
             <img className="report-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
-            <small>AI经营平台</small>
+            <small>AI 营销平台</small>
           </div>
         </div>
         <div className="report-top-title">
@@ -918,12 +969,1091 @@ function ReportPage({ report, pinned, onPin }: { report: ReportArtifact; pinned:
     </div>
   )
 }
+const statusToneMap: Record<string, string> = {
+  草稿: 'submitted',
+  已提交: 'submitted',
+  待同步: 'pending',
+  未同步: 'pending',
+  已暂停: 'pending',
+  即将结束: 'pending',
+  进行中: 'progress',
+  模拟中: 'review',
+  待复核: 'review',
+  已生成: 'success',
+  可访问: 'success',
+  已关联: 'success',
+  可查看: 'success',
+  已同步: 'success',
+  已领取: 'success',
+  已核销: 'success',
+  核销成功: 'success',
+  已完成: 'success',
+  同步失败: 'failed',
+  已失败: 'failed',
+  已结束: 'expired',
+  已过期: 'expired',
+}
 
+function StatusBadge({ value }: { value: string }) {
+  return <span className={`syt-status-badge ${statusToneMap[value] ?? 'neutral'}`}>{value}</span>
+}
+
+function CouponCenterPage() {
+  const [routeHash, setRouteHash] = useState(() => window.location.hash)
+  const menuItems: Array<{ name: string; detail: string; Icon: LucideIcon; href?: string }> = [
+    { name: '活动管理', detail: '方案、领券页、券批次和复盘', Icon: Megaphone, href: '#/coupon-center/campaigns' },
+    { name: '券批次管理', detail: '创建本地营销券，配置规则与库存', Icon: TicketPercent, href: '#/coupon-center/stocks' },
+    { name: '用户领券记录', detail: '领取明细、券码、渠道和状态', Icon: Users, href: '#/coupon-center/claims' },
+    { name: '核销管理', detail: '订单核销、抵扣和支付流水', Icon: Check, href: '#/coupon-center/redemptions' },
+    { name: '券使用报表', detail: '领券、核销、GMV 和成本', Icon: BarChart3, href: '#/coupon-center/reports' },
+  ]
+  const isStockPage = routeHash.startsWith('#/coupon-center/stocks')
+  const isCampaignManagePage = routeHash.startsWith('#/coupon-center/campaigns')
+  const isClaimRecordsPage = routeHash.startsWith('#/coupon-center/claims')
+  const isRedemptionPage = routeHash.startsWith('#/coupon-center/redemptions')
+  const isUsageReportPage = routeHash.startsWith('#/coupon-center/reports')
+  const isSubPage = isStockPage || isCampaignManagePage || isClaimRecordsPage || isRedemptionPage || isUsageReportPage
+  const pageTitle = isCampaignManagePage
+    ? '活动管理'
+    : isStockPage
+      ? '券批次管理'
+      : isClaimRecordsPage
+        ? '用户领券记录'
+        : isRedemptionPage
+          ? '核销管理'
+          : isUsageReportPage
+            ? '券使用报表'
+            : '优惠券中心'
+  const pageDescription = isCampaignManagePage
+    ? '管理从活动方案、领券页、券批次、投放渠道到复盘报表的完整私域营销链路。'
+    : isStockPage
+      ? '创建本地营销券批次，并与微信商家券批次保持一一映射，后续可用于领券、支付核销和效果报表。'
+      : isClaimRecordsPage
+        ? '查看用户从不同渠道领取到微信卡包的券记录，快速判断是否领取成功、是否已使用或即将过期。'
+        : isRedemptionPage
+          ? '管理到店支付后的优惠券核销流水，核对订单实付、优惠抵扣和微信支付回调状态。'
+          : isUsageReportPage
+            ? '按活动、券批次和渠道汇总领券、核销、GMV、优惠成本与转化效率。'
+            : '统一管理券批次、用户领券、订单核销和券使用报表。左侧菜单进入具体功能配置。'
+  const openCouponPage = (href?: string) => {
+    if (!href) return
+    window.location.hash = href
+    setRouteHash(href)
+  }
+
+  useEffect(() => {
+    const syncHash = () => setRouteHash(window.location.hash)
+    window.addEventListener('hashchange', syncHash)
+    return () => window.removeEventListener('hashchange', syncHash)
+  }, [])
+
+  const weekTrend = [
+    ['周一', 86, 31, '¥248'],
+    ['周二', 102, 38, '¥304'],
+    ['周三', 128, 47, '¥376'],
+    ['周四', 116, 43, '¥344'],
+    ['周五', 142, 51, '¥408'],
+  ]
+
+  const activeStocks = [
+    ['工作日午餐券', '满39减8', '300', '128', '47', '36.7%', '进行中'],
+    ['老客复购券', '满59减10', '200', '64', '18', '28.1%', '进行中'],
+    ['新客尝鲜券', '满29减5', '100', '92', '22', '23.9%', '即将结束'],
+  ]
+
+  const channelRows = [
+    ['微信群', '210', '86', '34', '39.5%'],
+    ['朋友圈', '156', '42', '13', '31.0%'],
+    ['门店二维码', '88', '31', '16', '51.6%'],
+    ['店员私聊', '64', '22', '9', '40.9%'],
+  ]
+
+  const events = [
+    ['12:16', '微信支付核销 1 张午餐券，订单实付 ¥34'],
+    ['12:08', '用户 138****5821 领取午餐券'],
+    ['11:58', '微信群入口新增 12 次访问'],
+    ['10:08', '午餐券 H5 入口生成'],
+    ['10:06', '微信商家券批次同步成功'],
+  ]
+
+  const claimRecords = [
+    ['12:08', '138****5821', '周女士', '工作日午餐轻食券', 'WXCP-240918-1288', '微信群', '已领取', '2026.09.30'],
+    ['11:54', '186****9012', '陈先生', '工作日午餐轻食券', 'WXCP-240918-1287', '门店二维码', '已核销', '2026.09.30'],
+    ['11:32', '159****6703', '赵女士', '老客复购券', 'WXCP-240916-0641', '店员私聊', '已领取', '2026.10.15'],
+    ['10:46', '177****3319', '李先生', '新客尝鲜券', 'WXCP-240912-0092', '朋友圈', '即将结束', '2026.09.27'],
+  ]
+
+  const redemptionRecords = [
+    ['12:16', 'PAY-20260918-0917', '138****5821', '工作日午餐轻食券', '¥42', '¥8', '¥34', '微信支付', '核销成功'],
+    ['12:02', 'PAY-20260918-0908', '186****9012', '工作日午餐轻食券', '¥39', '¥8', '¥31', '微信支付', '核销成功'],
+    ['11:47', 'PAY-20260918-0881', '159****6703', '老客复购券', '¥68', '¥10', '¥58', '微信支付', '核销成功'],
+    ['11:21', 'PAY-20260918-0842', '177****3319', '新客尝鲜券', '¥31', '¥0', '¥31', '未使用券', '待复核'],
+  ]
+
+  const usageReportRows = [
+    ['工作日午餐轻食券', '微信群', '210', '86', '34', '39.5%', '¥1,428', '¥272'],
+    ['工作日午餐轻食券', '门店二维码', '88', '31', '16', '51.6%', '¥672', '¥128'],
+    ['老客复购券', '店员私聊', '64', '22', '9', '40.9%', '¥612', '¥90'],
+    ['新客尝鲜券', '朋友圈', '156', '42', '13', '31.0%', '¥403', '¥65'],
+  ]
+
+  type MarketingCampaign = {
+    id: string
+    name: string
+    goal: string
+    audience: string
+    channels: string
+    coupon: string
+    claimPage: string
+    stockName: string
+    status: string
+    visits: string
+    claims: string
+    uses: string
+    gmv: string
+    cost: string
+    owner: string
+  }
+
+  const initialCampaigns: MarketingCampaign[] = [
+    {
+      id: 'CMP-20260918-001',
+      name: '工作日午餐轻食活动',
+      goal: '午高峰转化',
+      audience: '周边上班族、新老会员',
+      channels: '朋友圈、微信群、门店二维码',
+      coupon: '满39减8',
+      claimPage: '工作日午餐会员领券页',
+      stockName: '工作日午餐轻食券',
+      status: '进行中',
+      visits: '386',
+      claims: '128',
+      uses: '47',
+      gmv: '¥1,974',
+      cost: '¥376',
+      owner: '林店长',
+    },
+    {
+      id: 'CMP-20260916-002',
+      name: '老客复购唤醒',
+      goal: '提升复购',
+      audience: '30 天未到店老客',
+      channels: '店员私聊、微信群',
+      coupon: '满59减10',
+      claimPage: '老客复购专属领券页',
+      stockName: '老客复购券',
+      status: '进行中',
+      visits: '212',
+      claims: '64',
+      uses: '18',
+      gmv: '¥1,122',
+      cost: '¥180',
+      owner: '林店长',
+    },
+    {
+      id: 'CMP-20260912-003',
+      name: '新客尝鲜活动',
+      goal: '新客拉新',
+      audience: '首次领券顾客',
+      channels: '门店二维码、小红书',
+      coupon: '满29减5',
+      claimPage: '新客尝鲜领券页',
+      stockName: '新客尝鲜券',
+      status: '草稿',
+      visits: '0',
+      claims: '0',
+      uses: '0',
+      gmv: '¥0',
+      cost: '¥0',
+      owner: '林店长',
+    },
+  ]
+
+  type CouponStock = {
+    localStockNo: string
+    stockId: string
+    outRequestNo: string
+    name: string
+    type: string
+    rule: string
+    stock: string
+    available: string
+    claimed: string
+    used: string
+    status: string
+    sync: string
+    period: string
+    merchant: string
+    goods: string
+    useTime: string
+    limit: string
+  }
+
+  const initialCouponStocks: CouponStock[] = [
+    {
+      localStockNo: 'SYT-STOCK-20260918-001',
+      stockId: '100906018520260918001',
+      outRequestNo: 'wxbusifavor_20260918_lunch_001',
+      name: '工作日午餐轻食券',
+      type: '满减券',
+      rule: '满39减8',
+      stock: '300',
+      available: '172',
+      claimed: '128',
+      used: '47',
+      status: '进行中',
+      sync: '已同步',
+      period: '2026.09.18 - 2026.09.30',
+      merchant: '杭州西湖店',
+      goods: '轻食套餐、青提茉莉',
+      useTime: '周一至周五 11:00-13:30',
+      limit: '每人限领 1 张',
+    },
+    {
+      localStockNo: 'SYT-STOCK-20260916-002',
+      stockId: '100906018520260916002',
+      outRequestNo: 'wxbusifavor_20260916_return_002',
+      name: '老客复购券',
+      type: '满减券',
+      rule: '满59减10',
+      stock: '200',
+      available: '136',
+      claimed: '64',
+      used: '18',
+      status: '进行中',
+      sync: '已同步',
+      period: '2026.09.16 - 2026.10.15',
+      merchant: '杭州西湖店',
+      goods: '全店套餐',
+      useTime: '每日 10:00-20:00',
+      limit: '每人限领 1 张',
+    },
+    {
+      localStockNo: 'SYT-STOCK-20260912-003',
+      stockId: '待同步',
+      outRequestNo: 'wxbusifavor_20260912_new_003',
+      name: '新客尝鲜券',
+      type: '满减券',
+      rule: '满29减5',
+      stock: '100',
+      available: '100',
+      claimed: '0',
+      used: '0',
+      status: '草稿',
+      sync: '未同步',
+      period: '2026.09.20 - 2026.09.27',
+      merchant: '杭州西湖店',
+      goods: '轻食套餐',
+      useTime: '每日 11:00-19:00',
+      limit: '仅新客可领，每人限领 1 张',
+    },
+  ]
+
+  const [couponStocks, setCouponStocks] = useState(initialCouponStocks)
+  const [detailStockNo, setDetailStockNo] = useState<string | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [campaigns, setCampaigns] = useState(initialCampaigns)
+  const [detailCampaignId, setDetailCampaignId] = useState<string | null>(null)
+  const [campaignFormOpen, setCampaignFormOpen] = useState(false)
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null)
+  const [campaignFilter, setCampaignFilter] = useState<'all' | 'draft' | 'published'>('all')
+  const selectedCampaign = detailCampaignId ? campaigns.find((campaign) => campaign.id === detailCampaignId) : undefined
+  const editingCampaign = editingCampaignId ? campaigns.find((campaign) => campaign.id === editingCampaignId) : undefined
+  const selectedStock = detailStockNo ? couponStocks.find((stock) => stock.localStockNo === detailStockNo) : undefined
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    if (campaignFilter === 'draft') return campaign.status === '草稿'
+    if (campaignFilter === 'published') return campaign.status !== '草稿'
+    return true
+  })
+  const openCampaignForm = (id?: string) => {
+    setEditingCampaignId(id ?? null)
+    setCampaignFormOpen(true)
+  }
+  const updateCampaignStatus = (id: string, nextStatus: string) => {
+    setCampaigns((items) => items.map((campaign) => (campaign.id === id ? { ...campaign, status: nextStatus } : campaign)))
+  }
+  const handleCampaignSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+    const shouldPublish = submitter?.value === 'publish'
+    const nextStatus = shouldPublish ? '进行中' : '草稿'
+    const campaignData = {
+      name: String(data.get('campaignName') || '新建营销活动'),
+      goal: String(data.get('goal') || '提升到店'),
+      audience: String(data.get('audience') || '会员顾客'),
+      channels: String(data.get('channels') || '微信群、朋友圈'),
+      coupon: String(data.get('coupon') || '满499减80'),
+      claimPage: String(data.get('claimPage') || '活动会员领券页'),
+      stockName: String(data.get('stockName') || '活动优惠券'),
+      owner: String(data.get('owner') || '林店长'),
+      status: nextStatus,
+    }
+    if (editingCampaign) {
+      setCampaigns((items) =>
+        items.map((campaign) => (
+          campaign.id === editingCampaign.id
+            ? { ...campaign, ...campaignData }
+            : campaign
+        )),
+      )
+    } else {
+      const sequence = String(campaigns.length + 1).padStart(3, '0')
+      const newCampaign: MarketingCampaign = {
+        id: `CMP-20260922-${sequence}`,
+        ...campaignData,
+        visits: shouldPublish ? '0' : '0',
+        claims: '0',
+        uses: '0',
+        gmv: '¥0',
+        cost: '¥0',
+      }
+      setCampaigns((items) => [newCampaign, ...items])
+    }
+    setCampaignFormOpen(false)
+    setEditingCampaignId(null)
+    setCampaignFilter(nextStatus === '草稿' ? 'draft' : 'published')
+  }
+  const handleCreateStock = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const stock = String(data.get('stock') || '100')
+    const maxAmount = String(data.get('maxAmount') || '1')
+    const sequence = String(couponStocks.length + 1).padStart(3, '0')
+    const newStock: CouponStock = {
+      localStockNo: `SYT-STOCK-20260918-${sequence}`,
+      stockId: '待同步',
+      outRequestNo: String(data.get('outRequestNo') || `wxbusifavor_20260918_demo_${sequence}`),
+      name: String(data.get('stockName') || '新建营销券'),
+      type: String(data.get('couponType') || '满减券'),
+      rule: String(data.get('rule') || '满39减8'),
+      stock,
+      available: stock,
+      claimed: '0',
+      used: '0',
+      status: '草稿',
+      sync: '未同步',
+      period: String(data.get('period') || '2026.09.18 - 2026.09.30'),
+      merchant: String(data.get('merchant') || '杭州西湖店'),
+      goods: String(data.get('goods') || '轻食套餐'),
+      useTime: String(data.get('useTime') || '每日 11:00-19:00'),
+      limit: `每人限领 ${maxAmount} 张`,
+    }
+    setCouponStocks((stocks) => [newStock, ...stocks])
+    setDetailStockNo(null)
+    setFormOpen(false)
+    event.currentTarget.reset()
+  }
+  const updateStockStatus = (localStockNo: string, nextStatus: string, nextSync?: string) => {
+    setCouponStocks((stocks) =>
+      stocks.map((stock) => {
+        if (stock.localStockNo !== localStockNo) return stock
+        const shouldBackfillWechatNo = nextSync === '已同步' && stock.stockId === '待同步'
+        return {
+          ...stock,
+          status: nextStatus,
+          sync: nextSync ?? stock.sync,
+          stockId: shouldBackfillWechatNo ? `100906018520260918${stock.localStockNo.slice(-3)}` : stock.stockId,
+        }
+      }),
+    )
+  }
+  const detailFields = selectedStock
+    ? [
+        ['券批次', selectedStock.name],
+        ['本地批次号', selectedStock.localStockNo],
+        ['券类型', selectedStock.type],
+        ['优惠规则', selectedStock.rule],
+        ['总库存', selectedStock.stock],
+        ['剩余库存', selectedStock.available],
+        ['已领取', selectedStock.claimed],
+        ['已核销', selectedStock.used],
+        ['微信券批次号', selectedStock.stockId],
+        ['同步状态', selectedStock.sync],
+        ['状态', selectedStock.status],
+        ['有效期', selectedStock.period],
+        ['适用门店', selectedStock.merchant],
+        ['适用商品', selectedStock.goods],
+        ['可用时间', selectedStock.useTime],
+        ['领取限制', selectedStock.limit],
+      ]
+    : []
+
+  return (
+    <div className="coupon-admin-page">
+      <aside className="coupon-admin-sidebar">
+        <button
+          className="coupon-admin-brand"
+          type="button"
+          onClick={() => {
+            window.location.hash = ''
+          }}
+          aria-label="返回 AI 对话首页"
+        >
+          <img src={assetUrl('shengyitong-robot-logo.png')} alt="" />
+          <div>
+            <img src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
+            <small>AI 营销平台</small>
+          </div>
+        </button>
+        <nav>
+          {menuItems.map(({ name, detail, Icon, href }) => (
+            <button className={href && routeHash.startsWith(href) ? 'active' : ''} key={name} onClick={() => openCouponPage(href)}>
+              <Icon size={16} />
+              <span>{name}</span>
+              <small>{detail}</small>
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="coupon-admin-main">
+        <header className="coupon-admin-header">
+          <div>
+            {isSubPage ? (
+              <>
+                <button className="coupon-admin-back" type="button" onClick={() => openCouponPage('#/coupon-center')}>
+                  优惠券中心
+                </button>
+                <h1>{pageTitle}</h1>
+              </>
+            ) : (
+              <h1 className="coupon-home-title">优惠券中心</h1>
+            )}
+            <p>{pageDescription}</p>
+          </div>
+        </header>
+
+        {isClaimRecordsPage ? (
+          <section className="coupon-feature-page">
+            <section className="coupon-admin-metrics">
+              {[
+                ['今日领取', '128', '微信卡包入账成功'],
+                ['已核销', '47', '领取后核销率 36.7%'],
+                ['未核销', '81', '建议午高峰后提醒'],
+                ['即将过期', '18', '48 小时内到期'],
+              ].map(([label, value, note]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <small>{note}</small>
+                </div>
+              ))}
+            </section>
+            <article className="coupon-panel">
+              <div className="coupon-panel-head">
+                <div>
+                  <h2>领券明细</h2>
+                  <small>按用户、券码、渠道和微信券状态查看</small>
+                </div>
+              </div>
+              <div className="coupon-feature-filters">
+                <label><span>券批次</span><select defaultValue="all"><option value="all">全部券批次</option><option>工作日午餐轻食券</option><option>老客复购券</option><option>新客尝鲜券</option></select></label>
+                <label><span>状态</span><select defaultValue="all"><option value="all">全部状态</option><option>已领取</option><option>已核销</option><option>即将结束</option></select></label>
+                <label className="wide"><span>搜索</span><input placeholder="手机号 / 顾客 / 券码" /></label>
+                <button className="coupon-filter-submit" type="button">查询</button>
+              </div>
+              <div className="coupon-record-table claims">
+                <div><span>领取时间</span><span>手机号</span><span>顾客</span><span>券名称</span><span>券码</span><span>来源渠道</span><span>状态</span><span>有效期至</span></div>
+                {claimRecords.map(([time, phone, customer, coupon, code, channel, status, expire]) => (
+                  <div key={code}>
+                    <span>{time}</span>
+                    <span>{phone}</span>
+                    <span>{customer}</span>
+                    <span>{coupon}</span>
+                    <span>{code}</span>
+                    <span>{channel}</span>
+                    <span><StatusBadge value={status} /></span>
+                    <span>{expire}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </section>
+        ) : isRedemptionPage ? (
+          <section className="coupon-feature-page">
+            <section className="coupon-admin-metrics">
+              {[
+                ['今日核销', '47', '微信支付自动抵扣'],
+                ['优惠抵扣', '¥376', '商户营销成本'],
+                ['核销 GMV', '¥1,974', '实收 ¥1,598'],
+                ['待复核订单', '1', '券未匹配或回调延迟'],
+              ].map(([label, value, note]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <small>{note}</small>
+                </div>
+              ))}
+            </section>
+            <article className="coupon-panel">
+              <div className="coupon-panel-head">
+                <div>
+                  <h2>核销流水</h2>
+                  <small>核对订单金额、优惠抵扣、实付金额和支付回调状态</small>
+                </div>
+              </div>
+              <div className="coupon-feature-filters">
+                <label><span>核销状态</span><select defaultValue="all"><option value="all">全部状态</option><option>核销成功</option><option>待复核</option></select></label>
+                <label><span>支付方式</span><select defaultValue="all"><option value="all">全部支付方式</option><option>微信支付</option><option>未使用券</option></select></label>
+                <label className="wide"><span>搜索</span><input placeholder="订单号 / 手机号 / 券名称" /></label>
+                <button className="coupon-filter-submit" type="button">查询</button>
+              </div>
+              <div className="coupon-record-table redemptions">
+                <div><span>时间</span><span>订单号</span><span>用户</span><span>券名称</span><span>订单金额</span><span>优惠</span><span>实付</span><span>支付</span><span>状态</span></div>
+                {redemptionRecords.map(([time, orderNo, user, coupon, amount, discount, paid, payType, status]) => (
+                  <div key={orderNo}>
+                    <span>{time}</span>
+                    <span>{orderNo}</span>
+                    <span>{user}</span>
+                    <span>{coupon}</span>
+                    <span>{amount}</span>
+                    <span>{discount}</span>
+                    <span>{paid}</span>
+                    <span>{payType}</span>
+                    <span><StatusBadge value={status} /></span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </section>
+        ) : isUsageReportPage ? (
+          <section className="coupon-feature-page">
+            <section className="coupon-admin-metrics">
+              {[
+                ['访问人数', '518', '本周私域入口合计'],
+                ['领券人数', '181', '领取率 34.9%'],
+                ['核销订单', '72', '核销率 39.8%'],
+                ['优惠成本', '¥555', '带动 GMV ¥3,115'],
+              ].map(([label, value, note]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <small>{note}</small>
+                </div>
+              ))}
+            </section>
+            <section className="coupon-report-layout">
+              <article className="coupon-panel">
+                <div className="coupon-panel-head">
+                  <div>
+                    <h2>券使用效果</h2>
+                    <small>按券批次和渠道拆分转化效率</small>
+                  </div>
+                </div>
+                <div className="coupon-record-table report">
+                  <div><span>券名称</span><span>渠道</span><span>访问</span><span>领券</span><span>核销</span><span>核销率</span><span>GMV</span><span>成本</span></div>
+                  {usageReportRows.map(([coupon, channel, visits, claims, uses, rate, gmv, cost]) => (
+                    <div key={`${coupon}-${channel}`}>
+                      <span>{coupon}</span>
+                      <span>{channel}</span>
+                      <span>{visits}</span>
+                      <span>{claims}</span>
+                      <span>{uses}</span>
+                      <span>{rate}</span>
+                      <span>{gmv}</span>
+                      <span>{cost}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+              <article className="coupon-panel">
+                <div className="coupon-panel-head">
+                  <div>
+                    <h2>复盘建议</h2>
+                    <small>基于领取到核销链路</small>
+                  </div>
+                </div>
+                <ul className="coupon-report-insights">
+                  <li><strong>门店二维码核销率最高</strong><span>顾客到店意图强，建议继续摆放在收银台和取餐区。</span></li>
+                  <li><strong>微信群领取量最高</strong><span>午高峰前 30 分钟提醒，可提升未核销券转化。</span></li>
+                  <li><strong>新客券成本可控</strong><span>朋友圈渠道 GMV 偏低，建议缩短有效期并强化到店场景。</span></li>
+                </ul>
+              </article>
+            </section>
+          </section>
+        ) : isCampaignManagePage ? (
+          <section className="campaign-admin-panel">
+            <article className="coupon-panel campaign-admin-list">
+              <div className="coupon-panel-head coupon-panel-head-action">
+                <div>
+                  <h2>活动列表</h2>
+                  <small>活动、券、页面、投放和复盘统一管理</small>
+                </div>
+                <button type="button" onClick={() => openCampaignForm()}>新建活动</button>
+              </div>
+              <div className="campaign-filter-tabs" role="tablist" aria-label="活动状态筛选">
+                {([
+                  ['all', '全部活动'],
+                  ['draft', '草稿箱'],
+                  ['published', '已发布'],
+                ] as Array<['all' | 'draft' | 'published', string]>).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={campaignFilter === value ? 'active' : ''}
+                    onClick={() => setCampaignFilter(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="campaign-admin-table">
+                <div>
+                  <span>活动名称</span>
+                  <span>目标</span>
+                  <span>渠道</span>
+                  <span>优惠</span>
+                  <span>领取 / 核销</span>
+                  <span>GMV / 成本</span>
+                  <span>状态</span>
+                  <span>操作</span>
+                </div>
+                {filteredCampaigns.map((campaign) => (
+                  <div key={campaign.id}>
+                    <span>
+                      <strong>{campaign.name}</strong>
+                      <em>{campaign.id}</em>
+                    </span>
+                    <span>{campaign.goal}</span>
+                    <span>{campaign.channels}</span>
+                    <span>{campaign.coupon}</span>
+                    <span>{campaign.claims} / {campaign.uses}</span>
+                    <span>{campaign.gmv} / {campaign.cost}</span>
+                    <span><StatusBadge value={campaign.status} /></span>
+                    <span className="coupon-row-actions">
+                      <button type="button" onClick={() => setDetailCampaignId(campaign.id)}>查看详情</button>
+                      <button type="button" onClick={() => openCampaignForm(campaign.id)}>编辑</button>
+                      {campaign.status === '草稿' && (
+                        <button type="button" onClick={() => updateCampaignStatus(campaign.id, '进行中')}>发布</button>
+                      )}
+                      {campaign.status === '进行中' && (
+                        <>
+                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '已暂停')}>暂停</button>
+                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '已结束')}>结束</button>
+                        </>
+                      )}
+                      {campaign.status === '已暂停' && (
+                        <>
+                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '进行中')}>恢复</button>
+                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '已结束')}>结束</button>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                ))}
+                {filteredCampaigns.length === 0 && (
+                  <div className="campaign-empty-row">
+                    <span>当前没有{campaignFilter === 'draft' ? '草稿活动' : campaignFilter === 'published' ? '已发布活动' : '活动'}，可以点击右上角新建活动。</span>
+                  </div>
+                )}
+              </div>
+            </article>
+          </section>
+        ) : isStockPage ? (
+        <section className="coupon-stock-layout list-only">
+          <article className="coupon-panel coupon-stock-list">
+            <div className="coupon-panel-head coupon-panel-head-action">
+              <div>
+                <h2>批次列表</h2>
+                <small>与微信商家券信息保持一致</small>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormOpen(true)
+                  setDetailStockNo(null)
+                }}
+              >
+                新增
+              </button>
+            </div>
+            <div className="coupon-stock-filters">
+              <label>
+                <span>状态</span>
+                <select defaultValue="all">
+                  <option value="all">全部状态</option>
+                  <option>草稿</option>
+                  <option>进行中</option>
+                  <option>已暂停</option>
+                  <option>已结束</option>
+                </select>
+              </label>
+              <label>
+                <span>同步</span>
+                <select defaultValue="all">
+                  <option value="all">全部同步状态</option>
+                  <option>未同步</option>
+                  <option>已同步</option>
+                  <option>同步失败</option>
+                </select>
+              </label>
+              <label>
+                <span>券类型</span>
+                <select defaultValue="all">
+                  <option value="all">全部券类型</option>
+                  <option>满减券</option>
+                  <option>折扣券</option>
+                  <option>兑换券</option>
+                </select>
+              </label>
+              <label className="coupon-filter-search">
+                <span>搜索</span>
+                <input placeholder="券名称 / 微信券批次号 / 本地批次号" />
+              </label>
+              <button className="coupon-filter-submit" type="button">查询</button>
+            </div>
+            <div className="coupon-stock-table">
+              <div>
+                <span>券批次</span>
+                <span>优惠规则</span>
+                <span>库存</span>
+                <span>领 / 核</span>
+                <span>微信券批次号</span>
+                <span>同步</span>
+                <span>状态</span>
+                <span>操作</span>
+              </div>
+              {couponStocks.map((stock) => (
+                <div key={stock.localStockNo}>
+                  <span>
+                    <strong>{stock.name}</strong>
+                    <em>{stock.localStockNo}</em>
+                  </span>
+                  <span>{stock.rule}</span>
+                  <span>{stock.stock} / 余 {stock.available}</span>
+                  <span>{stock.claimed} / {stock.used}</span>
+                  <span>{stock.stockId}</span>
+                  <span><StatusBadge value={stock.sync} /></span>
+                  <span><StatusBadge value={stock.status} /></span>
+                  <span className="coupon-row-actions">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailStockNo(stock.localStockNo)
+                        setFormOpen(false)
+                      }}
+                    >
+                      查看详情
+                    </button>
+                    {stock.status === '草稿' && (
+                      <>
+                        <button type="button">编辑</button>
+                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中', '已同步')}>同步启用</button>
+                      </>
+                    )}
+                    {stock.status === '进行中' && (
+                      <>
+                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '已暂停')}>暂停</button>
+                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '已结束')}>结束</button>
+                      </>
+                    )}
+                    {stock.status === '已暂停' && (
+                      <>
+                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中')}>恢复</button>
+                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '已结束')}>结束</button>
+                      </>
+                    )}
+                    {stock.sync === '同步失败' && (
+                      <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中', '已同步')}>重试同步</button>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+        </section>
+        ) : (
+          <>
+            <section className="coupon-admin-metrics">
+              {[
+                ['今日领券', '128', '较昨日 +25.5%'],
+                ['今日核销', '47', '核销率 36.7%'],
+                ['优惠金额', '¥376', '微信商家券核销'],
+                ['带动 GMV', '¥1,974', '实收 ¥1,598'],
+              ].map(([label, value, note]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <small>{note}</small>
+                </div>
+              ))}
+            </section>
+
+            <section className="coupon-dashboard-grid">
+              <article className="coupon-panel trend">
+                <div className="coupon-panel-head">
+                  <h2>本周领券 / 核销趋势</h2>
+                  <small>工作日午餐券</small>
+                </div>
+                <div className="coupon-trend-list">
+                  {weekTrend.map(([day, claimed, used, amount]) => (
+                    <div key={day}>
+                      <span>{day}</span>
+                      <i style={{ width: `${Number(claimed) / 1.5}%` }} />
+                      <b>{claimed}</b>
+                      <em>核销 {used} · {amount}</em>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="coupon-panel todo">
+                <div className="coupon-panel-head">
+                  <h2>待处理事项</h2>
+                  <small>建议动作</small>
+                </div>
+                <ul>
+                  <li>
+                    <button className="coupon-inline-link" type="button" onClick={() => openCouponPage('#/coupon-center/stocks')}>
+                      2 个券批次待同步或需复查，进入券批次管理处理
+                    </button>
+                  </li>
+                  <li>81 张券已领取未核销，可在 13:30 前提醒一次</li>
+                  <li>门店二维码核销率最高，建议午高峰继续摆放</li>
+                  <li>新客尝鲜券即将结束，需确认是否延长 2 天</li>
+                </ul>
+              </article>
+
+              <article className="coupon-panel stocks">
+                <div className="coupon-panel-head">
+                  <h2>进行中的券批次</h2>
+                  <small>库存与核销</small>
+                </div>
+                <div className="coupon-table">
+                  <div><span>券名称</span><span>规则</span><span>库存</span><span>已领</span><span>已核销</span><span>核销率</span><span>状态</span></div>
+                  {activeStocks.map((row) => (
+                    <div key={row[0]}>
+                      {row.map((cell, index) => (
+                        <span key={`${row[0]}-${cell}`}>
+                          {index === row.length - 1 ? <StatusBadge value={String(cell)} /> : cell}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="coupon-panel channels">
+                <div className="coupon-panel-head">
+                  <h2>渠道来源分析</h2>
+                  <small>访问到核销</small>
+                </div>
+                <div className="coupon-channel-list">
+                  {channelRows.map(([name, visits, claims, uses, rate]) => (
+                    <div key={name}>
+                      <strong>{name}</strong>
+                      <span>访问 {visits}</span>
+                      <span>领券 {claims}</span>
+                      <span>核销 {uses}</span>
+                      <b>{rate}</b>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="coupon-panel events">
+                <div className="coupon-panel-head">
+                  <h2>最近事件日志</h2>
+                  <small>实时同步</small>
+                </div>
+                {events.map(([time, text]) => (
+                  <div className="coupon-event" key={`${time}-${text}`}>
+                    <b>{time}</b>
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </article>
+            </section>
+          </>
+        )}
+      </main>
+      {campaignFormOpen && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close" type="button" onClick={() => {
+            setCampaignFormOpen(false)
+            setEditingCampaignId(null)
+          }} aria-label="关闭">
+            <X size={18} />
+          </button>
+          <form className="coupon-modal campaign-form-modal" onSubmit={handleCampaignSubmit}>
+            <div className="coupon-modal-head">
+              <div>
+                <h2>{editingCampaign ? '编辑活动' : '新建活动'}</h2>
+                <small>{editingCampaign ? '修改后可保存为草稿，也可重新发布。' : '先填写活动基础信息，可以保存草稿或直接发布。'}</small>
+              </div>
+            </div>
+            <div className="coupon-form-grid campaign-form-grid">
+              <label><span>活动名称</span><input name="campaignName" defaultValue={editingCampaign?.name ?? '周末宴请营销活动'} /></label>
+              <label><span>活动目标</span><input name="goal" defaultValue={editingCampaign?.goal ?? '提升周末到店'} /></label>
+              <label className="wide"><span>目标人群</span><input name="audience" defaultValue={editingCampaign?.audience ?? '家庭聚餐、商务宴请、老会员'} /></label>
+              <label className="wide"><span>投放渠道</span><input name="channels" defaultValue={editingCampaign?.channels ?? '微信群、朋友圈、门店二维码'} /></label>
+              <label><span>关联优惠</span><input name="coupon" defaultValue={editingCampaign?.coupon ?? '满499减80'} /></label>
+              <label><span>领券页</span><input name="claimPage" defaultValue={editingCampaign?.claimPage ?? '周末宴请会员领券页'} /></label>
+              <label><span>券批次</span><input name="stockName" defaultValue={editingCampaign?.stockName ?? '周末宴请券'} /></label>
+              <label><span>负责人</span><input name="owner" defaultValue={editingCampaign?.owner ?? '林店长'} /></label>
+            </div>
+            <div className="coupon-form-actions">
+              <button type="button" onClick={() => {
+                setCampaignFormOpen(false)
+                setEditingCampaignId(null)
+              }}>取消</button>
+              <button type="submit" name="submitMode" value="draft">保存草稿</button>
+              <button type="submit" name="submitMode" value="publish">{editingCampaign ? '发布更新' : '发布活动'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {selectedCampaign && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close" type="button" onClick={() => setDetailCampaignId(null)} aria-label="关闭">
+            <X size={18} />
+          </button>
+          <section className="coupon-modal campaign-detail-modal" role="dialog" aria-modal="true" aria-label="活动详情">
+            <div className="coupon-modal-head">
+              <div>
+                <h2>{selectedCampaign.name}</h2>
+                <small>{selectedCampaign.goal} · {selectedCampaign.owner}</small>
+              </div>
+            </div>
+            <div className="campaign-detail-summary">
+              {[
+                ['访问', selectedCampaign.visits],
+                ['领券', selectedCampaign.claims],
+                ['核销', selectedCampaign.uses],
+                ['GMV', selectedCampaign.gmv],
+                ['优惠成本', selectedCampaign.cost],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="coupon-wechat-fields campaign-detail-fields">
+              {[
+                ['活动编号', selectedCampaign.id],
+                ['目标人群', selectedCampaign.audience],
+                ['投放渠道', selectedCampaign.channels],
+                ['关联优惠', selectedCampaign.coupon],
+                ['领券页', selectedCampaign.claimPage],
+                ['关联券批次', selectedCampaign.stockName],
+                ['状态', selectedCampaign.status],
+                ['负责人', selectedCampaign.owner],
+              ].map(([field, value]) => (
+                <div key={field}>
+                  <b>{field}</b>
+                  <span>{field === '状态' ? <StatusBadge value={value} /> : value}</span>
+                </div>
+              ))}
+            </div>
+            <div className="campaign-detail-actions">
+              <a href="#/campaigns/spring-salad" target="_blank" rel="noreferrer">打开领券页</a>
+              <button type="button" onClick={() => {
+                setDetailCampaignId(null)
+                openCouponPage('#/coupon-center/stocks')
+              }}>
+                查看券批次
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {selectedStock && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close" type="button" onClick={() => setDetailStockNo(null)} aria-label="关闭">
+            <X size={18} />
+          </button>
+          <section className="coupon-modal coupon-detail-modal" role="dialog" aria-modal="true" aria-label="批次详情">
+            <div className="coupon-modal-head">
+              <div>
+                <h2>{selectedStock.name}</h2>
+                <small>{selectedStock.rule}</small>
+              </div>
+            </div>
+            <div className="coupon-wechat-fields">
+              {detailFields.map(([field, value]) => (
+                <div key={field}>
+                  <b>{field}</b>
+                  <span>{field === '状态' || field === '同步状态' ? <StatusBadge value={value} /> : value}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+      {formOpen && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close" type="button" onClick={() => setFormOpen(false)} aria-label="关闭">
+            <X size={18} />
+          </button>
+          <form className="coupon-modal" onSubmit={handleCreateStock}>
+            <div className="coupon-modal-head">
+              <div>
+                <h2>新建券批次</h2>
+                <small>提交后先生成本地营销券批次，微信券批次号待同步后回填。</small>
+              </div>
+            </div>
+            <div className="coupon-form-grid">
+              <label><span>券名称</span><input name="stockName" defaultValue="工作日午餐轻食券" /></label>
+              <label><span>券类型</span><select name="couponType" defaultValue="满减券"><option>满减券</option><option>折扣券</option><option>兑换券</option></select></label>
+              <label><span>优惠规则</span><input name="rule" defaultValue="满39减8" /></label>
+              <label><span>总库存</span><input name="stock" defaultValue="300" /></label>
+              <label><span>有效期</span><input name="period" defaultValue="2026.09.18 - 2026.09.30" /></label>
+              <label><span>适用门店</span><input name="merchant" defaultValue="杭州西湖店" /></label>
+              <label><span>适用商品</span><input name="goods" defaultValue="轻食套餐、青提茉莉" /></label>
+              <label><span>可用时间</span><input name="useTime" defaultValue="周一至周五 11:00-13:30" /></label>
+              <label><span>每人限领</span><input name="maxAmount" defaultValue="1" /></label>
+              <label className="wide"><span>微信同步请求号</span><input name="outRequestNo" defaultValue="wxbusifavor_20260918_lunch_001" /></label>
+            </div>
+            <div className="coupon-form-actions">
+              <button type="button" onClick={() => setFormOpen(false)}>取消</button>
+              <button type="submit">提交创建</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  )
+}
 function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; onSavePoster: () => void }) {
   const [qrOpen, setQrOpen] = useState(false)
   const pageSearch = typeof window === 'undefined' ? '' : window.location.search
   const hashSearch = typeof window === 'undefined' ? '' : (window.location.hash.split('?')[1] ?? '')
   const isSharePage = new URLSearchParams(pageSearch).get('share') === '1' || new URLSearchParams(hashSearch).get('share') === '1'
+  const isBanquetPage = page.href.includes('weekend-banquet')
+  const mobilePage = isBanquetPage
+    ? {
+      image: 'campaign-premium-banquet-3x4.png',
+      imageAlt: '高级中餐宴请海报',
+      kicker: '杭州西湖店 · 周末宴请',
+      title: '周末雅宴，体面请客更从容',
+      intro: '包间氛围、招牌宴请菜和会员专属礼遇都已备好，适合家庭聚餐、朋友小聚和商务宴请。',
+      sectionLabel: '宴请亮点',
+      sectionTitle: '高级中餐团圆宴',
+      sectionBody: '本周末宴请优惠力度空前，满499立减80。招牌烤鸭、清蒸鱼、点心、时令热菜和中式茶席组合，适合 4 至 8 人周末聚餐，提前预订更划算。',
+      tags: ['包间可预订', '家庭 / 商务 / 老友', '会员券可用'],
+      audienceLabel: '适合谁',
+      audienceTitle: '给想把周末聚餐安排体面的人',
+      audienceBody: '不用临时找餐厅，也不用担心菜品不够撑场面。提前领券预订，到店直接享受宴请优惠，把时间留给家人、朋友和重要客人。',
+      shareText: '周末宴请会员礼，提前预订更从容。',
+    }
+    : {
+      image: 'campaign-light-meal-poster-3x4.png',
+      imageAlt: '工作日轻食午餐海报',
+      kicker: '杭州西湖店 · 工作日午餐',
+      title: '今天午餐，吃轻一点也吃饱一点',
+      intro: '清爽、饱腹、不费脑。午高峰前下单，还能领取工作日专属满减券。',
+      sectionLabel: '套餐内容',
+      sectionTitle: '低负担轻食套餐',
+      sectionBody: '现做鸡胸、牛油果、时蔬和青提茉莉组合，适合午休时间有限、下午还想保持清爽状态的上班族。',
+      tags: ['15 分钟左右出餐', '堂食 / 外卖 / 自提', '会员可叠加积分'],
+      audienceLabel: '适合谁',
+      audienceTitle: '给不想午后犯困的你',
+      audienceBody: '鸡胸够嫩，牛油果增加饱腹感，青提茉莉清爽解腻。下午还要开会，也能吃得轻松一点。',
+      shareText: '工作日午餐轻食券，清爽、饱腹、不费脑。',
+    }
   const shareUrl = `${publicCampaignBaseUrl}?share=1${page.href}`
   const qrPreviewUrl = `https://api.qrserver.com/v1/create-qr-code/?size=92x92&margin=6&data=${encodeURIComponent(shareUrl)}`
   const qrLargeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(shareUrl)}`
@@ -932,7 +2062,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       if (navigator.share) {
         await navigator.share({
           title: page.title,
-          text: '工作日午餐轻食券，清爽、饱腹、不费脑。',
+          text: mobilePage.shareText,
           url: shareUrl,
         })
         return
@@ -951,7 +2081,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
             <img className="report-robot-logo" src={assetUrl('shengyitong-robot-logo.png')} alt="" />
             <div className="report-brand-copy">
               <img className="report-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
-              <small>AI经营平台</small>
+              <small>AI 营销平台</small>
             </div>
           </div>
           <div className="report-top-title">
@@ -978,29 +2108,27 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
         <section className="mobile-campaign-frame" aria-label="移动端活动页预览">
           <div className="mobile-campaign-page">
             <section className="mobile-campaign-hero">
-              <img src={assetUrl('campaign-light-meal-poster-3x4.png')} alt="工作日轻食午餐海报" />
+              <img src={assetUrl(mobilePage.image)} alt={mobilePage.imageAlt} />
               <div>
-                <span>杭州西湖店 · 工作日午餐</span>
-                <h1>今天午餐，吃轻一点也吃饱一点</h1>
-                <p>清爽、饱腹、不费脑。午高峰前下单，还能领取工作日专属满减券。</p>
+                <span>{mobilePage.kicker}</span>
+                <h1>{mobilePage.title}</h1>
+                <p>{mobilePage.intro}</p>
               </div>
             </section>
 
             <section className="mobile-campaign-section">
-              <small>套餐内容</small>
-              <h2>低负担轻食套餐</h2>
-              <p>现做鸡胸、牛油果、时蔬和青提茉莉组合，适合午休时间有限、下午还想保持清爽状态的上班族。</p>
+              <small>{mobilePage.sectionLabel}</small>
+              <h2>{mobilePage.sectionTitle}</h2>
+              <p>{mobilePage.sectionBody}</p>
               <div className="mobile-campaign-tags">
-                <span>15 分钟左右出餐</span>
-                <span>堂食 / 外卖 / 自提</span>
-                <span>会员可叠加积分</span>
+                {mobilePage.tags.map((tag) => <span key={tag}>{tag}</span>)}
               </div>
             </section>
 
             <section className="mobile-campaign-section">
-              <small>适合谁</small>
-              <h2>给不想午后犯困的你</h2>
-              <p>鸡胸够嫩，牛油果增加饱腹感，青提茉莉清爽解腻。下午还要开会，也能吃得轻松一点。</p>
+              <small>{mobilePage.audienceLabel}</small>
+              <h2>{mobilePage.audienceTitle}</h2>
+              <p>{mobilePage.audienceBody}</p>
             </section>
 
             <section className="mobile-campaign-coupon">
@@ -1165,18 +2293,20 @@ function CreativeMarkdownAnswer({ output }: { output: CreativeOutput }) {
 }
 
 export default function App() {
-  const [activeId, setActiveId] = useState(scenarios[0].id)
+  const [activeId, setActiveId] = useState('marketing-page')
   const [prompt, setPrompt] = useState('')
   const [rightOpen, setRightOpen] = useState(false)
   const [leftOpen, setLeftOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
-  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null)
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>('history-marketing-page')
   const [approved, setApproved] = useState(false)
   const [toast, setToast] = useState('')
   const [usage, setUsage] = useState(getInitialUsage)
   const [suggestionIds, setSuggestionIds] = useState(randomSuggestionIds)
   const [railFocus, setRailFocus] = useState<RailFocus>('balanced')
   const [reportPinned, setReportPinned] = useState(isReportPinned)
+  const [copyShareTargetId, setCopyShareTargetId] = useState<CopyShareTargetId | null>(null)
+  const hideCommonFeatures = true
 
   const activeScenario = useMemo(
     () => scenarios.find((scenario) => scenario.id === activeId) ?? scenarios[0],
@@ -1186,6 +2316,7 @@ export default function App() {
     () => scenarios.find((scenario) => scenario.id === reportScenarioId) ?? scenarios[0],
     [],
   )
+  const copyShareTarget = copyShareTargets.find((target) => target.id === copyShareTargetId)
   const sentPrompt = customPrompt || (activeHistoryId === null ? '' : activeScenario.question)
   const commonScenarios = useMemo(
     () => scenarios
@@ -1339,6 +2470,19 @@ export default function App() {
     )
   }
 
+  if (window.location.hash.split('?')[0] === '#/campaigns/weekend-banquet') {
+    return (
+      <>
+        <MarketingPage page={weekendBanquetCampaign} onSavePoster={() => notify('已生成海报，可用于朋友圈和门店物料')} />
+        {toast && <div className="toast" role="status">{toast}</div>}
+      </>
+    )
+  }
+
+  if (window.location.hash.startsWith('#/coupon-center')) {
+    return <CouponCenterPage />
+  }
+
   return (
     <div className={`ai-shell ${rightOpen ? '' : 'without-context'}`}>
       <aside className={`left-rail ${leftOpen ? 'is-open' : ''}`}>
@@ -1346,13 +2490,13 @@ export default function App() {
           <span className="brand-mark"><img src={assetUrl('shengyitong-robot-logo.png')} alt="盛意通" /></span>
           <div className="brand-copy">
             <img className="brand-text-logo" src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
-            <small>AI经营平台</small>
+            <small>AI 营销平台</small>
           </div>
           <button className="icon-btn close-mobile" aria-label="关闭菜单" onClick={() => setLeftOpen(false)}><X size={19} /></button>
         </div>
         <button className="new-task" onClick={createNewSession}><Plus size={17} />新增会话</button>
-        <div className={`rail-workspace focus-${railFocus}`}>
-          <section className="rail-block compact">
+        <div className={`rail-workspace ${hideCommonFeatures ? 'hide-common' : `focus-${railFocus}`}`}>
+          <section className="rail-block compact" hidden={hideCommonFeatures}>
             <div className="rail-section-head">
               <p className="rail-label">常用功能</p>
               <button
@@ -1391,11 +2535,12 @@ export default function App() {
           </section>
           <section className="rail-block history">
             <div className="rail-section-head">
-              <p className="rail-label">历史会话</p>
+              <p className="rail-label">会话</p>
               <button
                 className="rail-more-button"
                 aria-pressed={railFocus === 'history'}
                 onClick={() => setRailFocus((current) => current === 'history' ? 'balanced' : 'history')}
+                hidden={hideCommonFeatures}
               >
                 查看更多
               </button>
@@ -1424,7 +2569,7 @@ export default function App() {
           <div>
             <button className="store-button context-store"><Store size={16} /><span>杭州西湖店</span><ChevronDown size={14} /></button>
             <button className="icon-btn" title="通知" aria-label="通知"><Bell size={18} /></button>
-            <button className="icon-btn" title={rightOpen ? '收起基础功能' : '展开基础功能'} aria-label={rightOpen ? '收起基础功能' : '展开基础功能'} onClick={() => setRightOpen(!rightOpen)}>
+            <button className="icon-btn" title={rightOpen ? '收起工作台' : '展开工作台'} aria-label={rightOpen ? '收起工作台' : '展开工作台'} onClick={() => setRightOpen(!rightOpen)}>
               {rightOpen ? <PanelRightClose size={19} /> : <PanelRightOpen size={19} />}
             </button>
           </div>
@@ -1449,15 +2594,45 @@ export default function App() {
               <div className="answer-head">
                 <span>{activeScenario.kind}</span>
               </div>
-              {activeScenario.creativeOutput ? (
+              {activeScenario.id === 'marketing-page' && activeScenario.marketingPage ? (
+                <>
+                  {activeScenario.creativeOutput && <CreativeMarkdownAnswer output={activeScenario.creativeOutput} />}
+
+                  <div className="report-link-card">
+                    <LayoutDashboard size={18} />
+                    <div>
+                      <span>已生成领取页</span>
+                      <a href={activeScenario.marketingPage.href} target="_blank" rel="noreferrer">
+                        {activeScenario.marketingPage.title}
+                        <ExternalLink size={14} />
+                      </a>
+                      <p>{activeScenario.marketingPage.description}</p>
+                    </div>
+                  </div>
+                </>
+              ) : activeScenario.creativeOutput ? (
                 <>
                   <CreativeMarkdownAnswer output={activeScenario.creativeOutput} />
+
+                  {activeScenario.id === 'copy-platform' && (
+                    <div className="copy-share-actions">
+                      <strong>平台分享</strong>
+                      <div>
+                        {copyShareTargets.map((target) => (
+                          <button key={target.id} type="button" onClick={() => setCopyShareTargetId(target.id)}>
+                            <Share2 size={15} />
+                            {target.action}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {activeScenario.marketingPage && (
                     <div className="report-link-card">
                       <LayoutDashboard size={18} />
                       <div>
-                        <span>已生成营销页</span>
+                        <span>已生成领取页</span>
                         <a href={activeScenario.marketingPage.href} target="_blank" rel="noreferrer">
                           {activeScenario.marketingPage.title}
                           <ExternalLink size={14} />
@@ -1566,6 +2741,20 @@ export default function App() {
                 </div>
               )}
 
+              {activeScenario.id === 'copy-platform' && (
+                <div className="copy-share-actions">
+                  <strong>平台分享</strong>
+                  <div>
+                    {copyShareTargets.map((target) => (
+                      <button key={target.id} type="button" onClick={() => setCopyShareTargetId(target.id)}>
+                        <Share2 size={15} />
+                        {target.action}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="next-actions">
                 <strong>建议下一步</strong>
                 {activeScenario.nextActions.map((item) => <button key={item} onClick={() => notify(`已加入待办：${item}`)}>{item}</button>)}
@@ -1626,39 +2815,71 @@ export default function App() {
       {rightOpen && (
         <aside className="context-panel">
           <div className="context-head">
-            <div><p>基础功能</p><strong>业务系统</strong></div>
-            <button className="icon-btn" aria-label="关闭基础功能" onClick={() => setRightOpen(false)}><X size={18} /></button>
+            <div><strong>工作台</strong></div>
+            <button className="icon-btn" aria-label="关闭工作台" onClick={() => setRightOpen(false)}><X size={18} /></button>
           </div>
           <section>
-            <div className="context-title"><span>基础功能</span><small>点击进入</small></div>
-            <div className="context-tools">
-              {tools.map(([name, Icon]) => (
-                <button key={name} onClick={() => notify(`正在进入${name}`)}><Icon size={16} /><span>{name}</span></button>
+            <div className="context-title"><span>活动能力</span></div>
+            <div className="marketing-side-grid">
+              {([
+                ['活动管理', '活动方案、领券页、渠道和状态', Megaphone, '#/coupon-center/campaigns'],
+                ['券批次管理', '券批次、库存、规则和同步状态', TicketPercent, '#/coupon-center/stocks'],
+                ['用户领券记录', '领取用户、渠道、卡包入账状态', Users, '#/coupon-center/claims'],
+                ['核销管理', '订单实付、优惠抵扣、核销状态', WalletCards, '#/coupon-center/redemptions'],
+                ['券使用报表', '访问、领券、核销、GMV 和成本', BarChart3, '#/coupon-center/reports'],
+              ] as Array<[string, string, LucideIcon, string]>).map(([name, detail, Icon, href]) => (
+                <button
+                  key={name}
+                  onClick={() => {
+                    window.open(`${window.location.origin}${window.location.pathname}${href}`, '_blank', 'noopener,noreferrer')
+                  }}
+                >
+                  <Icon size={16} />
+                  <span>{name}</span>
+                  <small>{detail}</small>
+                </button>
               ))}
             </div>
           </section>
           <section>
-            <div className="context-title"><span>今日经营</span><small>{activeScenario.context.updatedAt} 更新</small></div>
+            <div className="context-title"><span>活动指标</span><small>{activeScenario.context.updatedAt} 更新</small></div>
             <div className="mini-metrics">
               {[
-                ['营业收入', '¥12,846', '+12.6%', 'up'],
-                ['有效订单', '386', '+31', 'up'],
-                ['退款金额', '¥126', '+42.8%', 'down'],
-                ['新增会员', '42', '+18.2%', 'up'],
+                ['页面访问', '386', '+86', 'up'],
+                ['领券人数', '128', '33.2%', 'up'],
+                ['核销订单', '47', '36.7%', 'up'],
+                ['优惠抵扣', '¥376', '自动抵扣', 'flat'],
               ].map(([label, value, delta, trend]) => <div key={label}><span>{label}</span><strong>{value}</strong><small className={trend}>{delta}</small></div>)}
-            </div>
-            <div className="sparkline">{[27, 21, 32, 45, 59, 71, 89, 76, 62, 81].map((height, index) => <i key={index} className={index === 7 ? 'hot' : ''} style={{ height: `${height}%` }} />)}</div>
-          </section>
-          <section>
-            <div className="context-title"><span>数据来源</span><button>管理</button></div>
-            <div className="source-list">
-              {sourceList.map(([name, Icon]) => <div key={name}><span><Icon size={15} />{name}</span><small><i />已连接</small></div>)}
             </div>
           </section>
         </aside>
+      )}
+      {copyShareTarget && (
+        <div className="qr-modal-backdrop" onClick={() => setCopyShareTargetId(null)}>
+          <div className="qr-modal copy-share-modal" role="dialog" aria-modal="true" aria-label={`${copyShareTarget.action}二维码`} onClick={(event) => event.stopPropagation()}>
+            <button className="qr-modal-close" type="button" onClick={() => setCopyShareTargetId(null)} aria-label="关闭二维码">
+              <X size={17} />
+            </button>
+            <strong>{copyShareTarget.action}</strong>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(getCopyShareUrl(copyShareTarget))}`}
+              alt={`${copyShareTarget.action}二维码`}
+            />
+            <p>用{copyShareTarget.appName}扫码打开，系统会带入 3:4 海报图片、标题和文案内容。</p>
+            <div className="copy-share-preview">
+              <span>{copyShareTarget.title}</span>
+              <small>{copyShareTarget.text}</small>
+            </div>
+            <button type="button" onClick={() => navigator.clipboard?.writeText(getCopyShareUrl(copyShareTarget))}>
+              <Copy size={15} />
+              复制跳转链接
+            </button>
+          </div>
+        </div>
       )}
       {leftOpen && <button className="backdrop" aria-label="关闭菜单" onClick={() => setLeftOpen(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   )
 }
+
