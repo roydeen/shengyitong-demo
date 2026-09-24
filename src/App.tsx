@@ -1557,19 +1557,6 @@ function CouponCenterPage() {
                   ))}
                 </div>
               </article>
-              <article className="coupon-panel">
-                <div className="coupon-panel-head">
-                  <div>
-                    <h2>复盘建议</h2>
-                    <small>基于领取到核销链路</small>
-                  </div>
-                </div>
-                <ul className="coupon-report-insights">
-                  <li><strong>门店二维码核销率最高</strong><span>顾客到店意图强，建议继续摆放在收银台和取餐区。</span></li>
-                  <li><strong>微信群领取量最高</strong><span>午高峰前 30 分钟提醒，可提升未核销券转化。</span></li>
-                  <li><strong>新客券成本可控</strong><span>朋友圈渠道 GMV 偏低，建议缩短有效期并强化到店场景。</span></li>
-                </ul>
-              </article>
             </section>
           </section>
         ) : isCampaignManagePage ? (
