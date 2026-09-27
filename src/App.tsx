@@ -1639,7 +1639,7 @@ function CouponCenterPage() {
             <article className="coupon-panel member-segment-panel">
               <div className="coupon-panel-head">
                 <div>
-                  <h2>常用会员分群</h2>
+                  <h2>常用会员分组</h2>
                   <small>点击分群快速筛选会员，可用于后续活动和发券</small>
                 </div>
               </div>
@@ -1714,10 +1714,10 @@ function CouponCenterPage() {
                 </button>
               </div>
               <div className="coupon-record-table member-table">
-                <div><span>会员</span><span>等级</span><span>标签</span><span>生命周期</span><span>最近消费</span><span>消费次数</span><span>累计消费</span><span>账户资产</span><span>操作</span></div>
+                <div className="member-table-header"><span>会员</span><span>等级</span><span>标签</span><span>生命周期</span><span>最近消费</span><span>消费次数</span><span>累计消费</span><span>账户资产</span><span className="member-action-header">操作</span></div>
                 {filteredMembers.map((member) => (
                   <div key={member.id}>
-                    <span className="member-identity-cell">
+                    <span className="member-identity-cell" data-label="会员">
                       <input
                         type="checkbox"
                         checked={selectedMemberPhones.includes(member.phone)}
@@ -1726,14 +1726,14 @@ function CouponCenterPage() {
                       />
                       <span className="member-identity"><strong>{member.name}</strong><button type="button" onClick={() => setSelectedMemberPhone(member.phone)}>{member.phone}</button></span>
                     </span>
-                    <span>{member.level}</span>
-                    <span className="member-tags">{member.tags.slice(0, 2).map((tag) => <b key={tag}>{tag}</b>)}</span>
-                    <span><StatusBadge value={member.lifecycle} /></span>
-                    <span>{member.lastVisit}</span>
-                    <span>{member.visits}</span>
-                    <span>{member.totalSpent}</span>
-                    <span className="member-assets"><b>余额 {member.balance}</b><small>积分 {member.points} · 券 {member.coupons}</small></span>
-                    <span><button className="member-detail-button" type="button" onClick={() => setSelectedMemberPhone(member.phone)}>查看详情</button></span>
+                    <span data-label="等级">{member.level}</span>
+                    <span className="member-tags" data-label="标签">{member.tags.slice(0, 2).map((tag) => <b key={tag}>{tag}</b>)}</span>
+                    <span data-label="生命周期"><StatusBadge value={member.lifecycle} /></span>
+                    <span data-label="最近消费">{member.lastVisit}</span>
+                    <span data-label="消费次数">{member.visits}</span>
+                    <span data-label="累计消费">{member.totalSpent}</span>
+                    <span className="member-assets" data-label="账户资产"><b>余额 {member.balance}</b><small>积分 {member.points} · 券 {member.coupons}</small></span>
+                    <span className="member-action-cell" data-label="操作"><button className="member-detail-button" type="button" onClick={() => setSelectedMemberPhone(member.phone)}>查看详情</button></span>
                   </div>
                 ))}
                 {!filteredMembers.length && <div className="member-empty"><span>没有符合当前筛选条件的会员</span></div>}
