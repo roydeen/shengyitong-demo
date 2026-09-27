@@ -21,6 +21,8 @@ import {
   Menu,
   MessageSquare,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
   PenLine,
@@ -36,6 +38,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   TicketPercent,
+  UserRound,
   Users,
   WalletCards,
   WandSparkles,
@@ -992,6 +995,10 @@ const statusToneMap: Record<string, string> = {
   已失败: 'failed',
   已结束: 'expired',
   已过期: 'expired',
+  新会员: 'submitted',
+  活跃会员: 'progress',
+  沉睡会员: 'pending',
+  流失预警: 'failed',
 }
 
 function StatusBadge({ value }: { value: string }) {
@@ -1000,8 +1007,10 @@ function StatusBadge({ value }: { value: string }) {
 
 function CouponCenterPage() {
   const [routeHash, setRouteHash] = useState(() => window.location.hash)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const menuItems: Array<{ name: string; detail: string; Icon: LucideIcon; href?: string }> = [
     { name: '活动管理', detail: '方案、领券页、券批次和复盘', Icon: Megaphone, href: '#/coupon-center/campaigns' },
+    { name: '会员管理', detail: '会员画像、分群、资产和营销记录', Icon: UserRound, href: '#/coupon-center/members' },
     { name: '券批次管理', detail: '创建本地营销券，配置规则与库存', Icon: TicketPercent, href: '#/coupon-center/stocks' },
     { name: '用户领券记录', detail: '领取明细、券码、渠道和状态', Icon: Users, href: '#/coupon-center/claims' },
     { name: '核销管理', detail: '订单核销、抵扣和支付流水', Icon: Check, href: '#/coupon-center/redemptions' },
@@ -1009,12 +1018,15 @@ function CouponCenterPage() {
   ]
   const isStockPage = routeHash.startsWith('#/coupon-center/stocks')
   const isCampaignManagePage = routeHash.startsWith('#/coupon-center/campaigns')
+  const isMemberPage = routeHash.startsWith('#/coupon-center/members')
   const isClaimRecordsPage = routeHash.startsWith('#/coupon-center/claims')
   const isRedemptionPage = routeHash.startsWith('#/coupon-center/redemptions')
   const isUsageReportPage = routeHash.startsWith('#/coupon-center/reports')
-  const isSubPage = isStockPage || isCampaignManagePage || isClaimRecordsPage || isRedemptionPage || isUsageReportPage
+  const isSubPage = isStockPage || isCampaignManagePage || isMemberPage || isClaimRecordsPage || isRedemptionPage || isUsageReportPage
   const pageTitle = isCampaignManagePage
     ? '活动管理'
+    : isMemberPage
+      ? '会员管理'
     : isStockPage
       ? '券批次管理'
       : isClaimRecordsPage
@@ -1026,6 +1038,8 @@ function CouponCenterPage() {
             : '优惠券中心'
   const pageDescription = isCampaignManagePage
     ? '管理从活动方案、领券页、券批次、投放渠道到复盘报表的完整私域营销链路。'
+    : isMemberPage
+      ? '统一查看会员画像、消费贡献、账户资产和营销响应，为活动人群选择提供依据。'
     : isStockPage
       ? '创建本地营销券批次，并与微信商家券批次保持一一映射，后续可用于领券、支付核销和效果报表。'
       : isClaimRecordsPage
@@ -1095,6 +1109,99 @@ function CouponCenterPage() {
     ['工作日午餐轻食券', '门店二维码', '88', '31', '16', '51.6%', '¥672', '¥128'],
     ['老客复购券', '店员私聊', '64', '22', '9', '40.9%', '¥612', '¥90'],
     ['新客尝鲜券', '朋友圈', '156', '42', '13', '31.0%', '¥403', '¥65'],
+  ]
+
+  type MemberProfile = {
+    id: string
+    phone: string
+    name: string
+    level: string
+    tags: string[]
+    source: string
+    joinStore: string
+    joinDate: string
+    lastVisit: string
+    visits: string
+    totalSpent: string
+    avgSpent: string
+    balance: string
+    points: string
+    coupons: string
+    lifecycle: string
+    status: string
+    preference: string
+    activePeriod: string
+    reachability: string
+    lastCoupon: string
+    lastCampaign: string
+    suggestion: string
+    activities: Array<[string, string, string]>
+  }
+
+  const memberProfiles: MemberProfile[] = [
+    {
+      id: 'MBR-20240318-05821', phone: '138****5821', name: '周女士', level: '金卡会员',
+      tags: ['高价值会员', '午餐偏好', '领券未核销'], source: '微信群', joinStore: '杭州西湖店', joinDate: '2024.03.18',
+      lastVisit: '2026.09.18 12:16', visits: '42', totalSpent: '¥3,286', avgSpent: '¥78', balance: '¥188', points: '1,360', coupons: '3 张',
+      lifecycle: '活跃会员', status: '正常', preference: '轻食套餐、鸡胸沙拉、青提茉莉', activePeriod: '工作日 11:30-13:00', reachability: '微信可触达',
+      lastCoupon: '工作日午餐轻食券', lastCampaign: '工作日午餐轻食活动',
+      suggestion: '午餐偏好明确，最近消费稳定。建议继续投放工作日午餐券，并避免重复发放全时段优惠。',
+      activities: [['09.18 12:16', '支付核销', '午餐券抵扣 ¥8，实付 ¥34'], ['09.18 12:08', '领取优惠券', '从微信群领取工作日午餐轻食券'], ['09.11 12:22', '到店消费', '轻食套餐订单实付 ¥46']],
+    },
+    {
+      id: 'MBR-20240506-09012', phone: '186****9012', name: '陈先生', level: '银卡会员',
+      tags: ['午餐偏好', '门店活跃'], source: '门店二维码', joinStore: '杭州西湖店', joinDate: '2024.05.06',
+      lastVisit: '2026.09.18 12:02', visits: '18', totalSpent: '¥1,426', avgSpent: '¥79', balance: '¥0', points: '680', coupons: '1 张',
+      lifecycle: '活跃会员', status: '正常', preference: '牛油果套餐、无糖饮品', activePeriod: '工作日午餐', reachability: '微信可触达',
+      lastCoupon: '工作日午餐轻食券', lastCampaign: '工作日午餐轻食活动',
+      suggestion: '到店频率稳定，可尝试推荐双人午餐套餐，提高单次消费金额。',
+      activities: [['09.18 12:02', '支付核销', '午餐券抵扣 ¥8，实付 ¥31'], ['09.18 11:54', '领取优惠券', '扫描门店二维码领券'], ['09.04 12:13', '到店消费', '牛油果轻食套餐实付 ¥42']],
+    },
+    {
+      id: 'MBR-20231211-06703', phone: '159****6703', name: '赵女士', level: '金卡会员',
+      tags: ['高价值会员', '老客召回'], source: '店员邀请', joinStore: '杭州西湖店', joinDate: '2023.12.11',
+      lastVisit: '2026.08.16 18:40', visits: '36', totalSpent: '¥4,862', avgSpent: '¥135', balance: '¥520', points: '2,180', coupons: '2 张',
+      lifecycle: '沉睡会员', status: '正常', preference: '家庭套餐、周末聚餐', activePeriod: '周末晚餐', reachability: '微信可触达',
+      lastCoupon: '老客复购券', lastCampaign: '老客复购唤醒',
+      suggestion: '超过 30 天未到店，但历史消费价值较高。建议使用老客复购券定向召回，不进行全量低价促销。',
+      activities: [['09.18 11:47', '支付核销', '老客复购券抵扣 ¥10，实付 ¥58'], ['09.18 11:32', '领取优惠券', '通过店员私聊领取老客复购券'], ['08.16 18:40', '到店消费', '家庭套餐实付 ¥268']],
+    },
+    {
+      id: 'MBR-20240208-02286', phone: '133****2286', name: '吴女士', level: '银卡会员',
+      tags: ['午餐偏好', '老客召回'], source: '门店二维码', joinStore: '杭州西湖店', joinDate: '2024.02.08',
+      lastVisit: '2026.08.02 12:28', visits: '21', totalSpent: '¥1,764', avgSpent: '¥84', balance: '¥36', points: '760', coupons: '0 张',
+      lifecycle: '沉睡会员', status: '正常', preference: '低脂套餐、牛油果沙拉、无糖茶', activePeriod: '工作日 12:00-13:30', reachability: '短信可触达',
+      lastCoupon: '暂无可用券', lastCampaign: '工作日午餐轻食活动',
+      suggestion: '午餐消费偏好清晰，已有 30 天以上未到店。适合用午餐回归礼做一次定向短信召回。',
+      activities: [['08.02 12:28', '到店消费', '牛油果轻食套餐实付 ¥78'], ['07.14 11:56', '支付核销', '午餐券抵扣 ¥8，实付 ¥36'], ['07.14 11:43', '领取优惠券', '扫描门店二维码领取午餐券']],
+    },
+    {
+      id: 'MBR-20260912-03319', phone: '177****3319', name: '李先生', level: '普通会员',
+      tags: ['新会员', '领券未核销'], source: '朋友圈', joinStore: '杭州西湖店', joinDate: '2026.09.12',
+      lastVisit: '尚未完成首单', visits: '0', totalSpent: '¥0', avgSpent: '¥0', balance: '¥0', points: '0', coupons: '1 张',
+      lifecycle: '新会员', status: '正常', preference: '暂未形成', activePeriod: '暂未形成', reachability: '微信可触达',
+      lastCoupon: '新客尝鲜券', lastCampaign: '新客尝鲜活动',
+      suggestion: '已领券但尚未完成首单，建议在券到期前 24 小时发送一次到店提醒。',
+      activities: [['09.18 11:21', '支付尝试', '订单未匹配优惠券，待复核'], ['09.12 10:46', '领取优惠券', '从朋友圈领取新客尝鲜券'], ['09.12 10:44', '注册会员', '通过活动页完成微信授权']],
+    },
+    {
+      id: 'MBR-20240126-04276', phone: '136****4276', name: '孙女士', level: '铂金会员',
+      tags: ['高价值会员', '宴请偏好'], source: '小程序', joinStore: '杭州西湖店', joinDate: '2024.01.26',
+      lastVisit: '2026.09.21 19:06', visits: '51', totalSpent: '¥12,680', avgSpent: '¥249', balance: '¥1,260', points: '5,420', coupons: '4 张',
+      lifecycle: '活跃会员', status: '正常', preference: '包间、宴请套餐、招牌烤鸭', activePeriod: '周末晚餐', reachability: '微信可触达',
+      lastCoupon: '周末宴请券', lastCampaign: '周末宴请营销活动',
+      suggestion: '高价值宴请会员，建议提供预约和专属菜品权益，减少单纯价格优惠。',
+      activities: [['09.21 19:06', '到店消费', '周末宴请订单实付 ¥1,286'], ['09.20 16:18', '预约包间', '预订周六 8 人包间'], ['09.18 09:20', '领取优惠券', '领取周末宴请券']],
+    },
+    {
+      id: 'MBR-20230819-07846', phone: '188****7846', name: '王先生', level: '银卡会员',
+      tags: ['老客召回', '价格敏感'], source: '收银台注册', joinStore: '杭州西湖店', joinDate: '2023.08.19',
+      lastVisit: '2026.06.08 12:35', visits: '14', totalSpent: '¥986', avgSpent: '¥70', balance: '¥0', points: '320', coupons: '0 张',
+      lifecycle: '流失预警', status: '正常', preference: '满减套餐、工作日午餐', activePeriod: '工作日午餐', reachability: '短信可触达',
+      lastCoupon: '暂无可用券', lastCampaign: '未参与近期活动',
+      suggestion: '超过 90 天未消费，建议先使用低成本内容触达验证意向，再决定是否发放召回券。',
+      activities: [['06.08 12:35', '到店消费', '午餐套餐实付 ¥66'], ['05.20 10:10', '优惠券过期', '满59减10元券未使用'], ['04.27 12:18', '到店消费', '轻食套餐实付 ¥72']],
+    },
   ]
 
   type MarketingCampaign = {
@@ -1257,9 +1364,33 @@ function CouponCenterPage() {
   const [campaignFormOpen, setCampaignFormOpen] = useState(false)
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null)
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'draft' | 'published'>('all')
+  const [selectedMemberPhone, setSelectedMemberPhone] = useState<string | null>(null)
+  const [memberLevel, setMemberLevel] = useState('all')
+  const [memberLifecycle, setMemberLifecycle] = useState('all')
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberSegment, setMemberSegment] = useState('all')
+  const [selectedMemberPhones, setSelectedMemberPhones] = useState<string[]>([])
+  const [memberSmsOpen, setMemberSmsOpen] = useState(false)
+  const [memberSmsCampaign, setMemberSmsCampaign] = useState('工作日午餐轻食活动')
+  const [memberSmsContent, setMemberSmsContent] = useState('杭州西湖店：好久不见，午餐回归礼满39减8元，点击领取后到店微信支付自动抵扣：')
+  const [memberSmsLink, setMemberSmsLink] = useState('https://roydeen.github.io/shengyitong-demo/#/campaigns/spring-salad?utm_source=sms')
+  const [memberSmsShortLink, setMemberSmsShortLink] = useState('https://syt.link/L39A8')
+  const [memberSmsNotice, setMemberSmsNotice] = useState('')
   const selectedCampaign = detailCampaignId ? campaigns.find((campaign) => campaign.id === detailCampaignId) : undefined
   const editingCampaign = editingCampaignId ? campaigns.find((campaign) => campaign.id === editingCampaignId) : undefined
   const selectedStock = detailStockNo ? couponStocks.find((stock) => stock.localStockNo === detailStockNo) : undefined
+  const selectedMember = selectedMemberPhone ? memberProfiles.find((member) => member.phone === selectedMemberPhone) : undefined
+  const filteredMembers = memberProfiles.filter((member) => {
+    const keyword = memberSearch.trim().toLowerCase()
+    const matchesKeyword = !keyword || [member.name, member.phone, member.id, ...member.tags].some((value) => value.toLowerCase().includes(keyword))
+    const matchesLevel = memberLevel === 'all' || member.level === memberLevel
+    const matchesLifecycle = memberLifecycle === 'all' || member.lifecycle === memberLifecycle
+    const matchesSegment = memberSegment === 'all' || member.tags.includes(memberSegment) || member.lifecycle === memberSegment
+    return matchesKeyword && matchesLevel && matchesLifecycle && matchesSegment
+  })
+  const selectedSmsMembers = memberProfiles.filter((member) => selectedMemberPhones.includes(member.phone))
+  const visibleMemberPhones = filteredMembers.map((member) => member.phone)
+  const allVisibleMembersSelected = visibleMemberPhones.length > 0 && visibleMemberPhones.every((phone) => selectedMemberPhones.includes(phone))
   const filteredCampaigns = campaigns.filter((campaign) => {
     if (campaignFilter === 'draft') return campaign.status === '草稿'
     if (campaignFilter === 'published') return campaign.status !== '草稿'
@@ -1268,6 +1399,43 @@ function CouponCenterPage() {
   const openCampaignForm = (id?: string) => {
     setEditingCampaignId(id ?? null)
     setCampaignFormOpen(true)
+  }
+  const toggleMemberSelection = (phone: string) => {
+    setSelectedMemberPhones((phones) => (
+      phones.includes(phone) ? phones.filter((item) => item !== phone) : [...phones, phone]
+    ))
+  }
+  const toggleVisibleMembers = () => {
+    setSelectedMemberPhones((phones) => {
+      if (allVisibleMembersSelected) return phones.filter((phone) => !visibleMemberPhones.includes(phone))
+      return Array.from(new Set([...phones, ...visibleMemberPhones]))
+    })
+  }
+  const handleMemberSmsSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const recipientCount = selectedSmsMembers.length
+    setMemberSmsOpen(false)
+    setSelectedMemberPhones([])
+    setMemberSmsNotice(`已模拟向 ${recipientCount} 位会员提交推广短信`)
+    window.setTimeout(() => setMemberSmsNotice(''), 2600)
+  }
+  const applyMemberSmsCampaign = (campaign: string) => {
+    setMemberSmsCampaign(campaign)
+    if (campaign === '周末宴请营销活动') {
+      setMemberSmsContent('杭州西湖店：周末宴请会员礼已备好，满499减80元，提前领券预订更从容：')
+      setMemberSmsLink('https://roydeen.github.io/shengyitong-demo/#/campaigns/weekend-banquet?utm_source=sms')
+      setMemberSmsShortLink('https://syt.link/W499')
+      return
+    }
+    if (campaign === '老客复购唤醒') {
+      setMemberSmsContent('杭州西湖店：专属老客回归礼已送达，领取满39减8元午餐券，到店微信支付自动抵扣：')
+      setMemberSmsLink('https://roydeen.github.io/shengyitong-demo/#/campaigns/spring-salad?utm_source=sms&utm_campaign=old-customer-return')
+      setMemberSmsShortLink('https://syt.link/RETURN')
+      return
+    }
+    setMemberSmsContent('杭州西湖店：好久不见，午餐回归礼满39减8元，点击领取后到店微信支付自动抵扣：')
+    setMemberSmsLink('https://roydeen.github.io/shengyitong-demo/#/campaigns/spring-salad?utm_source=sms')
+    setMemberSmsShortLink('https://syt.link/L39A8')
   }
   const updateCampaignStatus = (id: string, nextStatus: string) => {
     setCampaigns((items) => items.map((campaign) => (campaign.id === id ? { ...campaign, status: nextStatus } : campaign)))
@@ -1380,25 +1548,52 @@ function CouponCenterPage() {
     : []
 
   return (
-    <div className="coupon-admin-page">
+    <div className={`coupon-admin-page ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="coupon-admin-sidebar">
+        <div className="coupon-sidebar-head">
+          <button
+            className="coupon-admin-brand"
+            type="button"
+            onClick={() => { window.location.hash = '' }}
+            aria-label="返回 AI 对话首页"
+            title={sidebarCollapsed ? '盛意通 AI 营销平台' : undefined}
+          >
+            <img src={assetUrl('shengyitong-robot-logo.png')} alt="" />
+            <div>
+              <img src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
+              <small>AI 营销平台</small>
+            </div>
+          </button>
+          <button
+            className="coupon-sidebar-toggle"
+            type="button"
+            onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+            aria-label={sidebarCollapsed ? '展开左侧菜单' : '收起左侧菜单'}
+            title={sidebarCollapsed ? '展开菜单' : '收起菜单'}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
+        </div>
         <button
-          className="coupon-admin-brand"
+          className="new-task coupon-return-ai"
           type="button"
-          onClick={() => {
-            window.location.hash = ''
-          }}
-          aria-label="返回 AI 对话首页"
+          onClick={() => { window.location.hash = '' }}
+          aria-label="返回 AI 会话"
+          title={sidebarCollapsed ? '返回 AI 会话' : undefined}
         >
-          <img src={assetUrl('shengyitong-robot-logo.png')} alt="" />
-          <div>
-            <img src={assetUrl('shengyitong-text-logo.png')} alt="盛意通" />
-            <small>AI 营销平台</small>
-          </div>
+          <MessageSquare size={18} />
+          <span>返回 AI 会话</span>
         </button>
         <nav>
           {menuItems.map(({ name, detail, Icon, href }) => (
-            <button className={href && routeHash.startsWith(href) ? 'active' : ''} key={name} onClick={() => openCouponPage(href)}>
+            <button
+              className={href && routeHash.startsWith(href) ? 'active' : ''}
+              key={name}
+              type="button"
+              onClick={() => openCouponPage(href)}
+              aria-label={name}
+              title={sidebarCollapsed ? name : undefined}
+            >
               <Icon size={16} />
               <span>{name}</span>
               <small>{detail}</small>
@@ -1424,7 +1619,128 @@ function CouponCenterPage() {
           </div>
         </header>
 
-        {isClaimRecordsPage ? (
+        {isMemberPage ? (
+          <section className="coupon-feature-page member-management-page">
+            <section className="coupon-admin-metrics">
+              {[
+                ['会员总数', '12,860', '已合并微信及门店会员'],
+                ['本月新增', '326', '较上月 +12.8%'],
+                ['本月消费会员', '3,284', '会员复购率 38.6%'],
+                ['沉睡及预警', '1,148', '建议分层召回'],
+              ].map(([label, value, note]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <small>{note}</small>
+                </div>
+              ))}
+            </section>
+
+            <article className="coupon-panel member-segment-panel">
+              <div className="coupon-panel-head">
+                <div>
+                  <h2>常用会员分群</h2>
+                  <small>点击分群快速筛选会员，可用于后续活动和发券</small>
+                </div>
+              </div>
+              <div className="member-segment-grid">
+                {[
+                  ['all', '全部会员', '12,860', '全部会员档案'],
+                  ['高价值会员', '高价值会员', '628', '高消费或高频复购'],
+                  ['午餐偏好', '午餐偏好', '2,146', '工作日午餐活跃'],
+                  ['沉睡会员', '沉睡会员', '1,148', '超过 30 天未消费'],
+                  ['领券未核销', '领券未核销', '412', '适合到期前提醒'],
+                ].map(([value, label, count, note]) => (
+                  <button
+                    className={memberSegment === value ? 'active' : ''}
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setMemberSegment(value)
+                      setSelectedMemberPhones([])
+                    }}
+                  >
+                    <span>{label}</span>
+                    <strong>{count}</strong>
+                    <small>{note}</small>
+                  </button>
+                ))}
+              </div>
+            </article>
+
+            <article className="coupon-panel">
+              <div className="coupon-panel-head">
+                <div>
+                  <h2>会员列表</h2>
+                  <small>统一查看身份、消费、资产、标签和生命周期</small>
+                </div>
+              </div>
+              <form className="coupon-feature-filters member-filters" onSubmit={(event) => event.preventDefault()}>
+                <label>
+                  <span>会员等级</span>
+                  <select value={memberLevel} onChange={(event) => {
+                    setMemberLevel(event.target.value)
+                    setSelectedMemberPhones([])
+                  }}>
+                    <option value="all">全部等级</option>
+                    <option>普通会员</option><option>银卡会员</option><option>金卡会员</option><option>铂金会员</option>
+                  </select>
+                </label>
+                <label>
+                  <span>生命周期</span>
+                  <select value={memberLifecycle} onChange={(event) => {
+                    setMemberLifecycle(event.target.value)
+                    setSelectedMemberPhones([])
+                  }}>
+                    <option value="all">全部阶段</option>
+                    <option>新会员</option><option>活跃会员</option><option>沉睡会员</option><option>流失预警</option>
+                  </select>
+                </label>
+                <label className="wide">
+                  <span>搜索</span>
+                  <input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="姓名 / 手机号 / 会员编号 / 标签" />
+                </label>
+                <button className="coupon-filter-submit" type="submit">查询</button>
+              </form>
+              <div className="member-bulk-bar">
+                <label>
+                  <input type="checkbox" checked={allVisibleMembersSelected} onChange={toggleVisibleMembers} />
+                  <span>选择当前结果</span>
+                </label>
+                <span>当前 {filteredMembers.length} 人，已选 {selectedMemberPhones.length} 人</span>
+                <button type="button" disabled={!selectedMemberPhones.length} onClick={() => setMemberSmsOpen(true)}>
+                  <MessageSquare size={15} />
+                  发送推广短信
+                </button>
+              </div>
+              <div className="coupon-record-table member-table">
+                <div><span>会员</span><span>等级</span><span>标签</span><span>生命周期</span><span>最近消费</span><span>消费次数</span><span>累计消费</span><span>账户资产</span><span>操作</span></div>
+                {filteredMembers.map((member) => (
+                  <div key={member.id}>
+                    <span className="member-identity-cell">
+                      <input
+                        type="checkbox"
+                        checked={selectedMemberPhones.includes(member.phone)}
+                        onChange={() => toggleMemberSelection(member.phone)}
+                        aria-label={`选择${member.name}`}
+                      />
+                      <span className="member-identity"><strong>{member.name}</strong><button type="button" onClick={() => setSelectedMemberPhone(member.phone)}>{member.phone}</button></span>
+                    </span>
+                    <span>{member.level}</span>
+                    <span className="member-tags">{member.tags.slice(0, 2).map((tag) => <b key={tag}>{tag}</b>)}</span>
+                    <span><StatusBadge value={member.lifecycle} /></span>
+                    <span>{member.lastVisit}</span>
+                    <span>{member.visits}</span>
+                    <span>{member.totalSpent}</span>
+                    <span className="member-assets"><b>余额 {member.balance}</b><small>积分 {member.points} · 券 {member.coupons}</small></span>
+                    <span><button className="member-detail-button" type="button" onClick={() => setSelectedMemberPhone(member.phone)}>查看详情</button></span>
+                  </div>
+                ))}
+                {!filteredMembers.length && <div className="member-empty"><span>没有符合当前筛选条件的会员</span></div>}
+              </div>
+            </article>
+          </section>
+        ) : isClaimRecordsPage ? (
           <section className="coupon-feature-page">
             <section className="coupon-admin-metrics">
               {[
@@ -1458,7 +1774,7 @@ function CouponCenterPage() {
                 {claimRecords.map(([time, phone, customer, coupon, code, channel, status, expire]) => (
                   <div key={code}>
                     <span>{time}</span>
-                    <span>{phone}</span>
+                    <span><button className="member-phone-link" type="button" onClick={() => setSelectedMemberPhone(phone)}>{phone}</button></span>
                     <span>{customer}</span>
                     <span>{coupon}</span>
                     <span>{code}</span>
@@ -1856,6 +2172,133 @@ function CouponCenterPage() {
           </>
         )}
       </main>
+      {selectedMember && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close member-modal-close" type="button" onClick={() => setSelectedMemberPhone(null)} aria-label="关闭会员详情">
+            <X size={18} />
+          </button>
+          <section className="coupon-modal member-detail-modal" role="dialog" aria-modal="true" aria-label="会员详情">
+            <div className="coupon-modal-head member-detail-head">
+              <div>
+                <span>会员详情</span>
+                <h2>{selectedMember.name} <small>{selectedMember.phone}</small></h2>
+                <p>{selectedMember.id} · {selectedMember.level} · {selectedMember.joinStore}</p>
+              </div>
+              <StatusBadge value={selectedMember.lifecycle} />
+            </div>
+            <div className="member-detail-summary">
+              {[
+                ['累计消费', selectedMember.totalSpent, `${selectedMember.visits} 次消费`],
+                ['平均客单价', selectedMember.avgSpent, `最近 ${selectedMember.lastVisit}`],
+                ['储值余额', selectedMember.balance, `积分 ${selectedMember.points}`],
+                ['可用优惠券', selectedMember.coupons, selectedMember.lastCoupon],
+              ].map(([label, value, note]) => (
+                <div key={label}><span>{label}</span><strong>{value}</strong><small>{note}</small></div>
+              ))}
+            </div>
+            <div className="member-detail-grid">
+              <article>
+                <h3>基础信息</h3>
+                <dl>
+                  {[
+                    ['会员等级', selectedMember.level], ['入会时间', selectedMember.joinDate], ['会员来源', selectedMember.source],
+                    ['归属门店', selectedMember.joinStore], ['会员状态', selectedMember.status], ['触达状态', selectedMember.reachability],
+                  ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                </dl>
+              </article>
+              <article>
+                <h3>消费画像</h3>
+                <dl>
+                  {[
+                    ['偏好商品', selectedMember.preference], ['常用时段', selectedMember.activePeriod], ['最近消费', selectedMember.lastVisit],
+                    ['消费次数', `${selectedMember.visits} 次`], ['平均客单价', selectedMember.avgSpent], ['生命周期', selectedMember.lifecycle],
+                  ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                </dl>
+              </article>
+              <article>
+                <h3>会员资产与标签</h3>
+                <dl>
+                  {[
+                    ['储值余额', selectedMember.balance], ['会员积分', selectedMember.points], ['可用优惠券', selectedMember.coupons],
+                    ['最近领券', selectedMember.lastCoupon], ['会员标签', selectedMember.tags.join('、')], ['最近活动', selectedMember.lastCampaign],
+                  ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                </dl>
+              </article>
+              <article>
+                <h3>近期营销与消费记录</h3>
+                <div className="member-activity-list">
+                  {selectedMember.activities.map(([time, type, detail]) => (
+                    <div key={`${time}-${type}`}><b>{time}</b><span><strong>{type}</strong><small>{detail}</small></span></div>
+                  ))}
+                </div>
+              </article>
+            </div>
+            <div className="member-ai-suggestion">
+              <Sparkles size={18} />
+              <div><strong>AI 运营建议</strong><p>{selectedMember.suggestion}</p></div>
+            </div>
+          </section>
+        </div>
+      )}
+      {memberSmsOpen && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close member-modal-close" type="button" onClick={() => setMemberSmsOpen(false)} aria-label="关闭短信发送">
+            <X size={18} />
+          </button>
+          <form className="coupon-modal member-sms-modal" onSubmit={handleMemberSmsSubmit}>
+            <div className="coupon-modal-head member-sms-head">
+              <div>
+                <span>会员批量触达</span>
+                <h2>发送推广短信</h2>
+                <small>已选择 {selectedSmsMembers.length} 位会员，短信将携带可点击的营销活动链接。</small>
+              </div>
+            </div>
+            <div className="member-sms-layout">
+              <div className="member-sms-form">
+                <label>
+                  <span>关联营销活动</span>
+                  <select value={memberSmsCampaign} onChange={(event) => applyMemberSmsCampaign(event.target.value)}>
+                    <option>工作日午餐轻食活动</option>
+                    <option>老客复购唤醒</option>
+                    <option>周末宴请营销活动</option>
+                  </select>
+                </label>
+                <label>
+                  <span>短信内容</span>
+                  <textarea rows={4} value={memberSmsContent} onChange={(event) => setMemberSmsContent(event.target.value)} />
+                  <small>{memberSmsContent.length} 字，链接将自动追加在正文后</small>
+                </label>
+                <label>
+                  <span>营销链接</span>
+                  <input value={memberSmsLink} readOnly />
+                  <small>短信发送时自动转换为短链：{memberSmsShortLink}</small>
+                </label>
+              </div>
+              <aside className="member-sms-preview">
+                <div className="member-sms-preview-head"><MessageSquare size={16} /><strong>短信预览</strong></div>
+                <div className="member-sms-bubble">
+                  <p>{memberSmsContent}</p>
+                  <a href={memberSmsLink} target="_blank" rel="noreferrer">{memberSmsShortLink}</a>
+                </div>
+                <div className="member-sms-recipients">
+                  <strong>接收会员</strong>
+                  <div>
+                    {selectedSmsMembers.slice(0, 6).map((member) => <span key={member.id}>{member.name} {member.phone}</span>)}
+                    {selectedSmsMembers.length > 6 && <span>另有 {selectedSmsMembers.length - 6} 人</span>}
+                  </div>
+                </div>
+              </aside>
+            </div>
+            <div className="member-sms-note">
+              演示模式，不会实际发送短信。正式使用时需接入短信服务，并校验会员营销授权、发送时段和退订规则。
+            </div>
+            <div className="coupon-form-actions">
+              <button type="button" onClick={() => setMemberSmsOpen(false)}>取消</button>
+              <button type="submit">模拟发送短信</button>
+            </div>
+          </form>
+        </div>
+      )}
       {campaignFormOpen && (
         <div className="coupon-modal-backdrop" role="presentation">
           <button className="coupon-modal-floating-close" type="button" onClick={() => {
@@ -2001,6 +2444,7 @@ function CouponCenterPage() {
           </form>
         </div>
       )}
+      {memberSmsNotice && <div className="toast member-sms-toast" role="status">{memberSmsNotice}</div>}
     </div>
   )
 }
@@ -2282,8 +2726,9 @@ function CreativeMarkdownAnswer({ output }: { output: CreativeOutput }) {
 export default function App() {
   const [activeId, setActiveId] = useState('marketing-page')
   const [prompt, setPrompt] = useState('')
-  const [rightOpen, setRightOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(true)
   const [leftOpen, setLeftOpen] = useState(false)
+  const [appRouteHash, setAppRouteHash] = useState(() => window.location.hash)
   const [customPrompt, setCustomPrompt] = useState('')
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>('history-marketing-page')
   const [approved, setApproved] = useState(false)
@@ -2294,6 +2739,12 @@ export default function App() {
   const [reportPinned, setReportPinned] = useState(isReportPinned)
   const [copyShareTargetId, setCopyShareTargetId] = useState<CopyShareTargetId | null>(null)
   const hideCommonFeatures = true
+
+  useEffect(() => {
+    const syncRouteHash = () => setAppRouteHash(window.location.hash)
+    window.addEventListener('hashchange', syncRouteHash)
+    return () => window.removeEventListener('hashchange', syncRouteHash)
+  }, [])
 
   const activeScenario = useMemo(
     () => scenarios.find((scenario) => scenario.id === activeId) ?? scenarios[0],
@@ -2439,7 +2890,7 @@ export default function App() {
     setPrompt('')
   }
 
-  if (window.location.hash === '#/reports/channel-profit') {
+  if (appRouteHash === '#/reports/channel-profit') {
     return (
       <>
         <ReportPage report={channelReport} pinned={reportPinned} onPin={pinReportToCommon} />
@@ -2448,7 +2899,7 @@ export default function App() {
     )
   }
 
-  if (window.location.hash.split('?')[0] === '#/campaigns/spring-salad') {
+  if (appRouteHash.split('?')[0] === '#/campaigns/spring-salad') {
     return (
       <>
         <MarketingPage page={springSaladCampaign} onSavePoster={() => notify('已生成海报，可用于朋友圈和门店物料')} />
@@ -2457,7 +2908,7 @@ export default function App() {
     )
   }
 
-  if (window.location.hash.split('?')[0] === '#/campaigns/weekend-banquet') {
+  if (appRouteHash.split('?')[0] === '#/campaigns/weekend-banquet') {
     return (
       <>
         <MarketingPage page={weekendBanquetCampaign} onSavePoster={() => notify('已生成海报，可用于朋友圈和门店物料')} />
@@ -2466,7 +2917,7 @@ export default function App() {
     )
   }
 
-  if (window.location.hash.startsWith('#/coupon-center')) {
+  if (appRouteHash.startsWith('#/coupon-center')) {
     return <CouponCenterPage />
   }
 
@@ -2810,16 +3261,16 @@ export default function App() {
             <div className="marketing-side-grid">
               {([
                 ['活动管理', '活动方案、领券页、渠道和状态', Megaphone, '#/coupon-center/campaigns'],
+                ['会员管理', '会员画像、分群、资产和营销记录', UserRound, '#/coupon-center/members'],
                 ['券批次管理', '券批次、库存、规则和同步状态', TicketPercent, '#/coupon-center/stocks'],
                 ['用户领券记录', '领取用户、渠道、卡包入账状态', Users, '#/coupon-center/claims'],
                 ['核销管理', '订单实付、优惠抵扣、核销状态', WalletCards, '#/coupon-center/redemptions'],
                 ['券使用报表', '访问、领券、核销、GMV 和成本', BarChart3, '#/coupon-center/reports'],
               ] as Array<[string, string, LucideIcon, string]>).map(([name, detail, Icon, href]) => (
                 <button
+                  type="button"
                   key={name}
-                  onClick={() => {
-                    window.open(`${window.location.origin}${window.location.pathname}${href}`, '_blank', 'noopener,noreferrer')
-                  }}
+                  onClick={() => { window.location.hash = href }}
                 >
                   <Icon size={16} />
                   <span>{name}</span>
