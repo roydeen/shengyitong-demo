@@ -135,3 +135,4 @@ html,body,#root{overflow-x:hidden}.composer-wrap,.suggestions,.suggestions butto
 .campaign-share-notice{position:fixed;z-index:110;left:50%;bottom:24px;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:10px 15px;border-radius:7px;background:#071b4a;color:#fff;box-shadow:0 12px 36px rgba(7,27,74,.24);font-size:12px;white-space:nowrap}
 .wechat-share-image{position:fixed;left:-10000px;top:-10000px;width:360px;height:360px;object-fit:cover;pointer-events:none;opacity:.01}
 @media(max-width:760px){.wechat-share-guide{padding-top:15px}.wechat-share-guide-arrow{margin-right:7px}.campaign-share-notice{bottom:18px}}
+@media(max-width:760px){.campaign-page>.report-topbar{display:none}.campaign-page .campaign-canvas{padding:0}.campaign-page .mobile-campaign-page{width:100%;min-height:100vh;border:0;border-radius:0;box-shadow:none}}
