@@ -2952,6 +2952,17 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
     const previousImageHref = imageLink.href
     imageLink.href = shareImageUrl
 
+    if (isWeChat) {
+      try {
+        const target = new URL(shareUrl)
+        if (target.origin === window.location.origin && window.location.href !== shareUrl) {
+          window.history.replaceState(null, '', `${target.pathname}${target.search}${target.hash}`)
+        }
+      } catch {
+        // Local preview and production hosting can use different origins.
+      }
+    }
+
     const wechat = (window as Window & { wx?: WeChatShareApi }).wx
     if (isWeChat && wechat) {
       wechat.ready(() => {
