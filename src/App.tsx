@@ -164,7 +164,7 @@ const pinnedReportEvent = 'shengyitong:pinned-report-changed'
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
 const publicCampaignBaseUrl = 'https://roydeen.github.io/shengyitong-demo/'
 const campaignMerchantName = '杭州西湖店'
-const campaignShareVersion = '20260929-1'
+const campaignShareVersion = '20260929-2'
 const getCampaignShareSlug = (href: string) => href.includes('weekend-banquet') ? 'weekend-banquet' : 'spring-salad'
 const getCampaignShareUrl = (href: string) => `${publicCampaignBaseUrl}share/${getCampaignShareSlug(href)}.html?v=${campaignShareVersion}`
 const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.png`
@@ -2917,17 +2917,17 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = `${page.title}｜${campaignMerchantName}`
+    document.title = `${mobilePage.title}|${campaignMerchantName}`
 
     const metaDefinitions = [
       { selector: 'meta[name="description"]', attribute: 'name', value: 'description', content: mobilePage.shareText },
       { selector: 'meta[property="og:type"]', attribute: 'property', value: 'og:type', content: 'website' },
       { selector: 'meta[property="og:site_name"]', attribute: 'property', value: 'og:site_name', content: campaignMerchantName },
-      { selector: 'meta[property="og:title"]', attribute: 'property', value: 'og:title', content: `${page.title}｜${campaignMerchantName}` },
+      { selector: 'meta[property="og:title"]', attribute: 'property', value: 'og:title', content: `${mobilePage.title}|${campaignMerchantName}` },
       { selector: 'meta[property="og:description"]', attribute: 'property', value: 'og:description', content: mobilePage.shareText },
       { selector: 'meta[property="og:image"]', attribute: 'property', value: 'og:image', content: shareImageUrl },
       { selector: 'meta[property="og:url"]', attribute: 'property', value: 'og:url', content: shareUrl },
-      { selector: 'meta[itemprop="name"]', attribute: 'itemprop', value: 'name', content: `${page.title}｜${campaignMerchantName}` },
+      { selector: 'meta[itemprop="name"]', attribute: 'itemprop', value: 'name', content: `${mobilePage.title}|${campaignMerchantName}` },
       { selector: 'meta[itemprop="description"]', attribute: 'itemprop', value: 'description', content: mobilePage.shareText },
       { selector: 'meta[itemprop="image"]', attribute: 'itemprop', value: 'image', content: shareImageUrl },
     ]
@@ -2969,13 +2969,13 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
     if (isWeChat && wechat) {
       wechat.ready(() => {
         wechat.updateAppMessageShareData?.({
-          title: page.title,
+          title: `${mobilePage.title}|${campaignMerchantName}`,
           desc: mobilePage.shareText,
           link: shareUrl,
           imgUrl: shareImageUrl,
         })
         wechat.updateTimelineShareData?.({
-          title: `${page.title}｜${mobilePage.shareText}`,
+          title: `${mobilePage.title}|${campaignMerchantName}`,
           link: shareUrl,
           imgUrl: shareImageUrl,
         })
@@ -2991,7 +2991,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       if (imageLinkCreated) imageLink.remove()
       else imageLink.href = previousImageHref
     }
-  }, [isWeChat, mobilePage.shareText, page.title, shareImageUrl, shareUrl])
+  }, [isWeChat, mobilePage.shareText, mobilePage.title, shareImageUrl, shareUrl])
 
   const showShareNotice = (message: string) => {
     setShareNotice(message)
@@ -3014,7 +3014,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
     try {
       if (navigator.share) {
         await navigator.share({
-          title: page.title,
+          title: `${mobilePage.title}|${campaignMerchantName}`,
           text: mobilePage.shareText,
           url: shareUrl,
         })
