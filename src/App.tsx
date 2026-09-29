@@ -163,6 +163,8 @@ const pinnedReportKey = 'shengyitong:pinned-report:channel-profit'
 const pinnedReportEvent = 'shengyitong:pinned-report-changed'
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
 const publicCampaignBaseUrl = 'https://roydeen.github.io/shengyitong-demo/'
+const getCampaignShareSlug = (href: string) => href.includes('weekend-banquet') ? 'weekend-banquet' : 'spring-salad'
+const getCampaignShareUrl = (href: string) => `${publicCampaignBaseUrl}share/${getCampaignShareSlug(href)}.html`
 const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.png`
 const copyShareTargets: CopyShareTarget[] = [
   {
@@ -2904,18 +2906,51 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       audienceBody: '鸡胸够嫩，牛油果增加饱腹感，青提茉莉清爽解腻。下午还要开会，也能吃得轻松一点。',
       shareText: '工作日午餐轻食券，清爽、饱腹、不费脑。',
     }
-  const shareUrl = `${publicCampaignBaseUrl}?share=1${page.href}`
-  const shareImageUrl = `${publicCampaignBaseUrl}${mobilePage.image}`
+  const shareUrl = getCampaignShareUrl(page.href)
+  const shareImageFile = isBanquetPage ? 'campaign-premium-banquet-share.jpg' : 'campaign-light-meal-share.jpg'
+  const shareImageUrl = `${publicCampaignBaseUrl}${shareImageFile}`
   const qrPreviewUrl = `https://api.qrserver.com/v1/create-qr-code/?size=92x92&margin=6&data=${encodeURIComponent(shareUrl)}`
   const qrLargeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(shareUrl)}`
   const isWeChat = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent)
 
   useEffect(() => {
     const previousTitle = document.title
-    const description = document.querySelector<HTMLMetaElement>('meta[name="description"]')
-    const previousDescription = description?.content
     document.title = `${page.title}｜盛意通`
-    if (description) description.content = mobilePage.shareText
+
+    const metaDefinitions = [
+      { selector: 'meta[name="description"]', attribute: 'name', value: 'description', content: mobilePage.shareText },
+      { selector: 'meta[property="og:type"]', attribute: 'property', value: 'og:type', content: 'website' },
+      { selector: 'meta[property="og:site_name"]', attribute: 'property', value: 'og:site_name', content: '盛意通' },
+      { selector: 'meta[property="og:title"]', attribute: 'property', value: 'og:title', content: `${page.title}｜盛意通` },
+      { selector: 'meta[property="og:description"]', attribute: 'property', value: 'og:description', content: mobilePage.shareText },
+      { selector: 'meta[property="og:image"]', attribute: 'property', value: 'og:image', content: shareImageUrl },
+      { selector: 'meta[property="og:url"]', attribute: 'property', value: 'og:url', content: shareUrl },
+      { selector: 'meta[itemprop="name"]', attribute: 'itemprop', value: 'name', content: `${page.title}｜盛意通` },
+      { selector: 'meta[itemprop="description"]', attribute: 'itemprop', value: 'description', content: mobilePage.shareText },
+      { selector: 'meta[itemprop="image"]', attribute: 'itemprop', value: 'image', content: shareImageUrl },
+    ]
+    const metaState = metaDefinitions.map((definition) => {
+      let element = document.querySelector<HTMLMetaElement>(definition.selector)
+      const created = !element
+      if (!element) {
+        element = document.createElement('meta')
+        element.setAttribute(definition.attribute, definition.value)
+        document.head.appendChild(element)
+      }
+      const previousContent = element.content
+      element.content = definition.content
+      return { element, created, previousContent }
+    })
+
+    let imageLink = document.querySelector<HTMLLinkElement>('link[rel="image_src"]')
+    const imageLinkCreated = !imageLink
+    if (!imageLink) {
+      imageLink = document.createElement('link')
+      imageLink.rel = 'image_src'
+      document.head.appendChild(imageLink)
+    }
+    const previousImageHref = imageLink.href
+    imageLink.href = shareImageUrl
 
     const wechat = (window as Window & { wx?: WeChatShareApi }).wx
     if (isWeChat && wechat) {
@@ -2936,7 +2971,12 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
 
     return () => {
       document.title = previousTitle
-      if (description && previousDescription !== undefined) description.content = previousDescription
+      metaState.forEach(({ element, created, previousContent }) => {
+        if (created) element.remove()
+        else element.content = previousContent
+      })
+      if (imageLinkCreated) imageLink.remove()
+      else imageLink.href = previousImageHref
     }
   }, [isWeChat, mobilePage.shareText, page.title, shareImageUrl, shareUrl])
 
@@ -2947,6 +2987,14 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
 
   const shareCampaign = async () => {
     if (isWeChat) {
+      try {
+        const target = new URL(shareUrl)
+        if (target.origin === window.location.origin) {
+          window.history.replaceState(null, '', `${target.pathname}${target.search}${target.hash}`)
+        }
+      } catch {
+        // Local preview and production hosting can use different origins.
+      }
       setShareGuideOpen(true)
       return
     }
@@ -2969,6 +3017,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
 
   return (
     <div className={`campaign-page ${isSharePage ? 'campaign-share-page' : ''}`}>
+      <img className="wechat-share-image" src={shareImageUrl} alt="" aria-hidden="true" />
       {!isSharePage && (
         <header className="report-topbar">
           <div className="report-brand">
@@ -3203,7 +3252,7 @@ function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenari
   const [activeStep, setActiveStep] = useState(0)
   const finalAnswerRef = useRef<HTMLDivElement>(null)
   const finished = activeStep >= marketingSimulationSteps.length
-  const shareUrl = `${publicCampaignBaseUrl}${scenario.marketingPage?.href ?? ''}`
+  const shareUrl = getCampaignShareUrl(scenario.marketingPage?.href ?? '#/campaigns/spring-salad')
 
   useEffect(() => {
     let currentStep = 0
