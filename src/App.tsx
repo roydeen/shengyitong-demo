@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   ArrowUp,
@@ -11,12 +11,16 @@ import {
   ClipboardCheck,
   ClipboardList,
   Copy,
+  CircleStop,
   Database,
+  Download,
+  Eye,
   ExternalLink,
   FileText,
   Gauge,
   Image as ImageIcon,
   LayoutDashboard,
+  LoaderCircle,
   Megaphone,
   Menu,
   MessageSquare,
@@ -25,10 +29,14 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
+  Pause,
   PenLine,
+  Pencil,
   Pin,
   PinOff,
+  Play,
   Plus,
+  RefreshCw,
   Search,
   Share2,
   ShieldCheck,
@@ -49,6 +57,11 @@ import type { LucideIcon } from 'lucide-react'
 type ScenarioKind = '功能类' | '数据报表类' | '操作类' | '预测类' | '营销活动类'
 type FindingTone = 'critical' | 'opportunity' | 'info'
 type RailFocus = 'balanced' | 'common' | 'history'
+type WeChatShareApi = {
+  ready: (callback: () => void) => void
+  updateAppMessageShareData?: (options: { title: string; desc: string; link: string; imgUrl: string }) => void
+  updateTimelineShareData?: (options: { title: string; link: string; imgUrl: string }) => void
+}
 type ReportArtifact = {
   title: string
   href: string
@@ -63,6 +76,12 @@ type MarketingPageArtifact = {
   description: string
   campaign: string
   coupon: string
+}
+type MarketingSimulationStep = {
+  kind: 'thinking' | 'skill' | 'mcp' | 'answer'
+  title: string
+  detail: string
+  waitingText: string
 }
 type CreativeOutput = {
   markdown: string
@@ -191,6 +210,51 @@ const springSaladCampaign: MarketingPageArtifact = {
   coupon: '满 39 减 8 元午餐券',
   description: '面向微信私域生成的活动领取页，顾客扫码或点击进入后领券，到店微信支付时自动抵扣，商户可查看领取、核销和支付复盘。',
 }
+
+const marketingSimulationSteps: MarketingSimulationStep[] = [
+  {
+    kind: 'thinking',
+    title: '思考摘要 · 拆解经营目标',
+    detail: '识别工作日午餐、微信私域领券、到店支付抵扣和活动复盘四项核心诉求。',
+    waitingText: '正在理解经营目标与活动约束',
+  },
+  {
+    kind: 'skill',
+    title: '调用 Skill · 餐饮营销策划',
+    detail: '结合午餐客单价、午高峰时段与轻食商品，生成“满39减8”的活动策略。',
+    waitingText: '正在生成营销策略与优惠力度',
+  },
+  {
+    kind: 'mcp',
+    title: '调用 MCP · 门店经营数据',
+    detail: '读取杭州西湖店的商品、会员、订单与历史活动数据，校验适用门店和目标客群。',
+    waitingText: '正在读取门店与会员数据',
+  },
+  {
+    kind: 'mcp',
+    title: '调用 MCP · 营销券服务',
+    detail: '创建“工作日午餐营销活动”和“满39减8元午餐券”，并完成活动与券关联。',
+    waitingText: '正在创建活动与优惠券',
+  },
+  {
+    kind: 'skill',
+    title: '调用 Skill · 私域内容生成',
+    detail: '生成微信群、朋友圈活动文案，以及面向顾客的领券页内容。',
+    waitingText: '正在生成营销文案与页面内容',
+  },
+  {
+    kind: 'mcp',
+    title: '调用 MCP · 活动页发布',
+    detail: '生成活动领取页、分享地址，并配置访问、领券、核销和支付复盘指标。',
+    waitingText: '正在生成领取页和分享链接',
+  },
+  {
+    kind: 'answer',
+    title: '整理回答 · 汇总执行结果',
+    detail: '汇总活动方案、系统配置结果、运营建议和最终分享链接。',
+    waitingText: '正在整理最终回答',
+  },
+]
 
 const weekendBanquetCampaign: MarketingPageArtifact = {
   title: '周末宴请会员领券页',
@@ -1007,14 +1071,20 @@ function StatusBadge({ value }: { value: string }) {
 
 function CouponCenterPage() {
   const [routeHash, setRouteHash] = useState(() => window.location.hash)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem('shengyitong:coupon-sidebar-collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
   const menuItems: Array<{ name: string; detail: string; Icon: LucideIcon; href?: string }> = [
     { name: '活动管理', detail: '方案、领券页、券批次和复盘', Icon: Megaphone, href: '#/coupon-center/campaigns' },
     { name: '会员管理', detail: '会员画像、分群、资产和营销记录', Icon: UserRound, href: '#/coupon-center/members' },
     { name: '券批次管理', detail: '创建本地营销券，配置规则与库存', Icon: TicketPercent, href: '#/coupon-center/stocks' },
     { name: '用户领券记录', detail: '领取明细、券码、渠道和状态', Icon: Users, href: '#/coupon-center/claims' },
     { name: '核销管理', detail: '订单核销、抵扣和支付流水', Icon: Check, href: '#/coupon-center/redemptions' },
-    { name: '券使用报表', detail: '领券、核销、GMV 和成本', Icon: BarChart3, href: '#/coupon-center/reports' },
+    { name: '券使用报表', detail: '访问、领券、核销、GMV 和成本', Icon: BarChart3, href: '#/coupon-center/reports' },
   ]
   const isStockPage = routeHash.startsWith('#/coupon-center/stocks')
   const isCampaignManagePage = routeHash.startsWith('#/coupon-center/campaigns')
@@ -1047,7 +1117,7 @@ function CouponCenterPage() {
         : isRedemptionPage
           ? '管理到店支付后的优惠券核销流水，核对订单实付、优惠抵扣和微信支付回调状态。'
           : isUsageReportPage
-            ? '按活动、券批次和渠道汇总领券、核销、GMV、优惠成本与转化效率。'
+            ? '按活动、券批次和渠道汇总访问、领券、核销、GMV、优惠成本与转化效率。'
             : '统一管理券批次、用户领券、订单核销和券使用报表。左侧菜单进入具体功能配置。'
   const openCouponPage = (href?: string) => {
     if (!href) return
@@ -1060,6 +1130,14 @@ function CouponCenterPage() {
     window.addEventListener('hashchange', syncHash)
     return () => window.removeEventListener('hashchange', syncHash)
   }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('shengyitong:coupon-sidebar-collapsed', String(sidebarCollapsed))
+    } catch {
+      // Local storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }, [sidebarCollapsed])
 
   const weekTrend = [
     ['周一', 86, 31, '¥248'],
@@ -1104,12 +1182,44 @@ function CouponCenterPage() {
     ['11:21', 'PAY-20260918-0842', '177****3319', '新客尝鲜券', '¥31', '¥0', '¥31', '未使用券', '待复核'],
   ]
 
-  const usageReportRows = [
+  type UsageReportRow = [string, string, string, string, string, string, string, string]
+
+  const usageReportRows: UsageReportRow[] = [
     ['工作日午餐轻食券', '微信群', '210', '86', '34', '39.5%', '¥1,428', '¥272'],
     ['工作日午餐轻食券', '门店二维码', '88', '31', '16', '51.6%', '¥672', '¥128'],
     ['老客复购券', '店员私聊', '64', '22', '9', '40.9%', '¥612', '¥90'],
     ['新客尝鲜券', '朋友圈', '156', '42', '13', '31.0%', '¥403', '¥65'],
   ]
+
+  const usageReport30DayRows: UsageReportRow[] = [
+    ['工作日午餐轻食券', '微信群', '892', '348', '157', '45.1%', '¥6,594', '¥1,256'],
+    ['工作日午餐轻食券', '门店二维码', '374', '142', '74', '52.1%', '¥3,108', '¥592'],
+    ['老客复购券', '店员私聊', '286', '104', '48', '46.2%', '¥3,264', '¥480'],
+    ['新客尝鲜券', '朋友圈', '541', '176', '61', '34.7%', '¥1,891', '¥305'],
+  ]
+
+  const parseReportMoney = (value: string) => Number(value.replace(/[^\d.-]/g, ''))
+  const formatReportMoney = (value: number) => `¥${Math.round(value).toLocaleString('zh-CN')}`
+  const createCustomReportRows = (days: number): UsageReportRow[] => {
+    const scale = Math.max(1, days) / 7
+    return usageReportRows.map(([coupon, channel, visits, claims, uses, , gmv, cost], index) => {
+      const channelAdjustment = 0.96 + index * 0.025
+      const nextVisits = Math.max(1, Math.round(Number(visits) * scale * channelAdjustment))
+      const nextClaims = Math.max(1, Math.round(Number(claims) * scale * (channelAdjustment + 0.01)))
+      const nextUses = Math.max(1, Math.round(Number(uses) * scale * (channelAdjustment + 0.03)))
+      const rate = `${((nextUses / nextClaims) * 100).toFixed(1)}%`
+      return [
+        coupon,
+        channel,
+        String(nextVisits),
+        String(nextClaims),
+        String(nextUses),
+        rate,
+        formatReportMoney(parseReportMoney(gmv) * scale * channelAdjustment),
+        formatReportMoney(parseReportMoney(cost) * scale * channelAdjustment),
+      ]
+    })
+  }
 
   type MemberProfile = {
     id: string
@@ -1358,12 +1468,15 @@ function CouponCenterPage() {
 
   const [couponStocks, setCouponStocks] = useState(initialCouponStocks)
   const [detailStockNo, setDetailStockNo] = useState<string | null>(null)
+  const [endingStockNo, setEndingStockNo] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [campaigns, setCampaigns] = useState(initialCampaigns)
   const [detailCampaignId, setDetailCampaignId] = useState<string | null>(null)
   const [campaignFormOpen, setCampaignFormOpen] = useState(false)
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null)
+  const [endingCampaignId, setEndingCampaignId] = useState<string | null>(null)
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'draft' | 'published'>('all')
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState<'all' | '草稿' | '进行中' | '已暂停' | '已结束'>('all')
   const [selectedMemberPhone, setSelectedMemberPhone] = useState<string | null>(null)
   const [memberLevel, setMemberLevel] = useState('all')
   const [memberLifecycle, setMemberLifecycle] = useState('all')
@@ -1376,9 +1489,20 @@ function CouponCenterPage() {
   const [memberSmsLink, setMemberSmsLink] = useState('https://roydeen.github.io/shengyitong-demo/#/campaigns/spring-salad?utm_source=sms')
   const [memberSmsShortLink, setMemberSmsShortLink] = useState('https://syt.link/L39A8')
   const [memberSmsNotice, setMemberSmsNotice] = useState('')
+  const [reportRange, setReportRange] = useState<'7d' | '30d' | 'custom'>('7d')
+  const [reportChannel, setReportChannel] = useState('all')
+  const [customReportStart, setCustomReportStart] = useState('2026-09-15')
+  const [customReportEnd, setCustomReportEnd] = useState('2026-09-29')
+  const [appliedCustomReportRange, setAppliedCustomReportRange] = useState({ start: '2026-09-15', end: '2026-09-29' })
+  const [reportDateError, setReportDateError] = useState('')
   const selectedCampaign = detailCampaignId ? campaigns.find((campaign) => campaign.id === detailCampaignId) : undefined
+  const selectedCampaignReturnRatio = selectedCampaign && parseReportMoney(selectedCampaign.cost)
+    ? parseReportMoney(selectedCampaign.gmv) / parseReportMoney(selectedCampaign.cost)
+    : 0
   const editingCampaign = editingCampaignId ? campaigns.find((campaign) => campaign.id === editingCampaignId) : undefined
+  const endingCampaign = endingCampaignId ? campaigns.find((campaign) => campaign.id === endingCampaignId) : undefined
   const selectedStock = detailStockNo ? couponStocks.find((stock) => stock.localStockNo === detailStockNo) : undefined
+  const endingStock = endingStockNo ? couponStocks.find((stock) => stock.localStockNo === endingStockNo) : undefined
   const selectedMember = selectedMemberPhone ? memberProfiles.find((member) => member.phone === selectedMemberPhone) : undefined
   const filteredMembers = memberProfiles.filter((member) => {
     const keyword = memberSearch.trim().toLowerCase()
@@ -1392,10 +1516,105 @@ function CouponCenterPage() {
   const visibleMemberPhones = filteredMembers.map((member) => member.phone)
   const allVisibleMembersSelected = visibleMemberPhones.length > 0 && visibleMemberPhones.every((phone) => selectedMemberPhones.includes(phone))
   const filteredCampaigns = campaigns.filter((campaign) => {
-    if (campaignFilter === 'draft') return campaign.status === '草稿'
-    if (campaignFilter === 'published') return campaign.status !== '草稿'
-    return true
+    const matchesGroup = campaignFilter === 'draft'
+      ? campaign.status === '草稿'
+      : campaignFilter === 'published'
+        ? campaign.status !== '草稿'
+        : true
+    const matchesStatus = campaignStatusFilter === 'all' || campaign.status === campaignStatusFilter
+    return matchesGroup && matchesStatus
   })
+  const reportDateToUtc = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number)
+    return Date.UTC(year, month - 1, day)
+  }
+  const getReportDayCount = (start: string, end: string) => Math.floor((reportDateToUtc(end) - reportDateToUtc(start)) / 86400000) + 1
+  const formatReportDate = (value: string) => value.slice(5).replace('-', '/')
+  const customReportDays = getReportDayCount(appliedCustomReportRange.start, appliedCustomReportRange.end)
+  const reportRowsForRange = reportRange === '30d'
+    ? usageReport30DayRows
+    : reportRange === 'custom'
+      ? createCustomReportRows(customReportDays)
+      : usageReportRows
+  const currentReportRows = reportChannel === 'all'
+    ? reportRowsForRange
+    : reportRowsForRange.filter(([, channel]) => channel === reportChannel)
+  const reportMetrics = currentReportRows.reduce(
+    (total, [, , visits, claims, uses, , gmv, cost]) => ({
+      visits: total.visits + Number(visits),
+      claims: total.claims + Number(claims),
+      uses: total.uses + Number(uses),
+      gmv: total.gmv + parseReportMoney(gmv),
+      cost: total.cost + parseReportMoney(cost),
+    }),
+    { visits: 0, claims: 0, uses: 0, gmv: 0, cost: 0 },
+  )
+  const reportClaimRate = reportMetrics.visits ? (reportMetrics.claims / reportMetrics.visits) * 100 : 0
+  const reportUseRate = reportMetrics.claims ? (reportMetrics.uses / reportMetrics.claims) * 100 : 0
+  const reportOverallRate = reportMetrics.visits ? (reportMetrics.uses / reportMetrics.visits) * 100 : 0
+  const reportRoi = reportMetrics.cost ? reportMetrics.gmv / reportMetrics.cost : 0
+  const reportPeriodLabel = reportRange === '7d'
+    ? '2026.09.23 - 2026.09.29'
+    : reportRange === '30d'
+      ? '2026.08.31 - 2026.09.29'
+      : `${appliedCustomReportRange.start.replaceAll('-', '.')} - ${appliedCustomReportRange.end.replaceAll('-', '.')}`
+  const reportPeriodNote = reportRange === '7d' ? '较上周' : reportRange === '30d' ? '较上月' : `${customReportDays} 天汇总`
+  const customReportTrendPointCount = Math.min(10, Math.max(1, customReportDays))
+  const reportTrendData: Array<[string, number, number]> = reportRange === '7d'
+    ? [['09/23', 18, 6], ['09/24', 24, 8], ['09/25', 21, 9], ['09/26', 29, 11], ['09/27', 26, 10], ['09/28', 31, 13], ['09/29', 32, 15]]
+    : reportRange === '30d'
+      ? [['08/31', 66, 25], ['09/03', 72, 28], ['09/06', 69, 27], ['09/09', 76, 31], ['09/12', 73, 30], ['09/15', 82, 36], ['09/18', 78, 34], ['09/21', 84, 38], ['09/24', 87, 42], ['09/29', 83, 49]]
+      : Array.from({ length: customReportTrendPointCount }, (_, index) => {
+          const denominator = Math.max(1, customReportTrendPointCount - 1)
+          const offset = Math.round(((customReportDays - 1) * index) / denominator)
+          const date = new Date(reportDateToUtc(appliedCustomReportRange.start) + offset * 86400000).toISOString().slice(0, 10)
+          const weight = 0.78 + ((index * 7) % 6) * 0.08 + index * 0.025
+          return [
+            formatReportDate(date),
+            Math.max(1, Math.round((reportMetrics.claims / customReportTrendPointCount) * weight)),
+            Math.max(1, Math.round((reportMetrics.uses / customReportTrendPointCount) * (weight + 0.05))),
+          ]
+        })
+  const reportTrendMax = Math.max(1, ...reportTrendData.flatMap(([, claims, uses]) => [claims, uses]))
+  const reportChannelRows = currentReportRows
+    .map((row) => ({
+      row,
+      rate: Number.parseFloat(row[5]),
+      gmv: parseReportMoney(row[6]),
+      cost: parseReportMoney(row[7]),
+    }))
+    .sort((a, b) => b.rate - a.rate)
+  const bestReportChannel = reportChannelRows[0]
+  const topGmvReportChannel = [...reportChannelRows].sort((a, b) => b.gmv - a.gmv)[0]
+  const lowestReportChannel = reportChannelRows[reportChannelRows.length - 1]
+  const reportFindings: Array<[string, string]> = reportChannel === 'all'
+    ? [
+        [`${bestReportChannel?.row[1]}转化质量最高`, `核销率 ${bestReportChannel?.rate.toFixed(1)}%，建议继续保留这一高质量领券入口。`],
+        [`${topGmvReportChannel?.row[1]}贡献 GMV 最高`, `当前周期带动 GMV ${topGmvReportChannel?.row[6]}，可作为后续活动的重点投放渠道。`],
+        [`${lowestReportChannel?.row[1]}仍有转化空间`, `当前核销率 ${lowestReportChannel?.rate.toFixed(1)}%，建议优化入口文案并增加到期提醒。`],
+      ]
+    : [
+        [`${reportChannel}转化概况`, `${reportMetrics.visits.toLocaleString('zh-CN')} 次访问带来 ${reportMetrics.claims.toLocaleString('zh-CN')} 次领券，领取率 ${reportClaimRate.toFixed(1)}%。`],
+        [`${reportChannel}收入贡献`, `当前周期带动 GMV ${formatReportMoney(reportMetrics.gmv)}，优惠投入产出 ${reportRoi.toFixed(1)}x。`],
+        ['后续运营建议', reportUseRate >= 45 ? '当前核销表现较好，建议保持投放并适当扩大触达人群。' : '建议增加领券到期提醒，提升已领券用户的到店核销率。'],
+      ]
+  const applyCustomReportRange = () => {
+    if (!customReportStart || !customReportEnd) {
+      setReportDateError('请选择完整的开始和结束日期')
+      return
+    }
+    const days = getReportDayCount(customReportStart, customReportEnd)
+    if (days < 1) {
+      setReportDateError('开始日期不能晚于结束日期')
+      return
+    }
+    if (customReportStart < '2026-08-01' || customReportEnd > '2026-09-29') {
+      setReportDateError('当前演示数据支持 2026.08.01 至 2026.09.29')
+      return
+    }
+    setAppliedCustomReportRange({ start: customReportStart, end: customReportEnd })
+    setReportDateError('')
+  }
   const openCampaignForm = (id?: string) => {
     setEditingCampaignId(id ?? null)
     setCampaignFormOpen(true)
@@ -1481,6 +1700,7 @@ function CouponCenterPage() {
     setCampaignFormOpen(false)
     setEditingCampaignId(null)
     setCampaignFilter(nextStatus === '草稿' ? 'draft' : 'published')
+    setCampaignStatusFilter('all')
   }
   const handleCreateStock = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1525,6 +1745,26 @@ function CouponCenterPage() {
         }
       }),
     )
+  }
+  const handleReportExport = () => {
+    const header = ['券名称', '渠道', '访问', '领券', '核销', '核销率', 'GMV', '优惠成本', '投入产出']
+    const exportRows = currentReportRows.map((row) => [
+      ...row,
+      `${(parseReportMoney(row[6]) / parseReportMoney(row[7])).toFixed(1)}x`,
+    ])
+    const csv = [
+      [`统计周期：${reportPeriodLabel}`, `渠道：${reportChannel === 'all' ? '全部渠道' : reportChannel}`],
+      header,
+      ...exportRows,
+    ]
+      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `券使用报表-${reportRange === '7d' ? '近7天' : reportRange === '30d' ? '近30天' : reportPeriodLabel}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
   }
   const detailFields = selectedStock
     ? [
@@ -1790,9 +2030,9 @@ function CouponCenterPage() {
           <section className="coupon-feature-page">
             <section className="coupon-admin-metrics">
               {[
-                ['今日核销', '47', '微信支付自动抵扣'],
-                ['优惠抵扣', '¥376', '商户营销成本'],
-                ['核销 GMV', '¥1,974', '实收 ¥1,598'],
+                ['核销订单', '47', '微信支付自动抵扣'],
+                ['带动 GMV', '¥1,974', '实收 ¥1,598'],
+                ['优惠成本', '¥376', '微信商家券抵扣'],
                 ['待复核订单', '1', '券未匹配或回调延迟'],
               ].map(([label, value, note]) => (
                 <div key={label}>
@@ -1834,46 +2074,144 @@ function CouponCenterPage() {
             </article>
           </section>
         ) : isUsageReportPage ? (
-          <section className="coupon-feature-page">
-            <section className="coupon-admin-metrics">
-              {[
-                ['访问人数', '518', '本周私域入口合计'],
-                ['领券人数', '181', '领取率 34.9%'],
-                ['核销订单', '72', '核销率 39.8%'],
-                ['优惠成本', '¥555', '带动 GMV ¥3,115'],
-              ].map(([label, value, note]) => (
-                <div key={label}>
-                  <span>{label}</span>
-                  <strong>{value}</strong>
-                  <small>{note}</small>
+          <section className="coupon-feature-page coupon-report-page">
+            <div className="coupon-report-toolbar">
+              <div className="coupon-report-range" role="tablist" aria-label="报表时间范围">
+                {([['7d', '近 7 天'], ['30d', '近 30 天'], ['custom', '自定义']] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={reportRange === value ? 'active' : ''}
+                    aria-pressed={reportRange === value}
+                    onClick={() => {
+                      setReportRange(value)
+                      setReportDateError('')
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="coupon-report-tools">
+                <label>
+                  <span>渠道</span>
+                  <select aria-label="渠道筛选" value={reportChannel} onChange={(event) => setReportChannel(event.target.value)}>
+                    <option value="all">全部渠道</option>
+                    <option>微信群</option>
+                    <option>朋友圈</option>
+                    <option>门店二维码</option>
+                    <option>店员私聊</option>
+                  </select>
+                </label>
+                <button type="button" onClick={handleReportExport}><Download size={14} />导出报表</button>
+              </div>
+            </div>
+
+            {reportRange === 'custom' ? (
+              <div className="coupon-report-custom-range">
+                <div>
+                  <label><span>开始日期</span><input type="date" min="2026-08-01" max="2026-09-29" value={customReportStart} onChange={(event) => setCustomReportStart(event.target.value)} /></label>
+                  <i>至</i>
+                  <label><span>结束日期</span><input type="date" min="2026-08-01" max="2026-09-29" value={customReportEnd} onChange={(event) => setCustomReportEnd(event.target.value)} /></label>
+                  <button type="button" onClick={applyCustomReportRange}>查询</button>
                 </div>
+                {reportDateError ? <p role="alert">{reportDateError}</p> : <small>当前统计：{reportPeriodLabel}，共 {customReportDays} 天</small>}
+              </div>
+            ) : null}
+
+            <section className="coupon-report-kpis">
+              {([
+                ['访问人数', reportMetrics.visits.toLocaleString('zh-CN'), reportRange === 'custom' ? `${customReportDays} 天累计` : `${reportPeriodNote} +12.6%`, BarChart3, 'up'],
+                ['领券人数', reportMetrics.claims.toLocaleString('zh-CN'), `领取率 ${reportClaimRate.toFixed(1)}%`, Users, 'neutral'],
+                ['核销订单', reportMetrics.uses.toLocaleString('zh-CN'), `核销率 ${reportUseRate.toFixed(1)}%`, ClipboardCheck, 'neutral'],
+                ['带动 GMV', formatReportMoney(reportMetrics.gmv), reportRange === 'custom' ? `${customReportDays} 天累计` : `${reportPeriodNote} +18.2%`, CircleDollarSign, 'up'],
+                ['优惠成本', formatReportMoney(reportMetrics.cost), `投入产出 ${reportRoi.toFixed(1)}x`, TicketPercent, 'neutral'],
+              ] as Array<[string, string, string, LucideIcon, string]>).map(([label, value, note, Icon, tone]) => (
+                <article key={label}>
+                  <span className="coupon-report-kpi-icon"><Icon size={16} /></span>
+                  <div><small>{label}</small><strong>{value}</strong><em className={tone}>{note}</em></div>
+                </article>
               ))}
             </section>
-            <section className="coupon-report-layout">
-              <article className="coupon-panel">
-                <div className="coupon-panel-head">
-                  <div>
-                    <h2>券使用效果</h2>
-                    <small>按券批次和渠道拆分转化效率</small>
-                  </div>
+
+            <section className="coupon-report-visual-grid">
+              <article className="coupon-report-module coupon-report-trend">
+                <div className="coupon-report-module-head">
+                  <div><h2>领券与核销趋势</h2><small>{reportPeriodLabel}{reportChannel === 'all' ? '' : ` · ${reportChannel}`}</small></div>
+                  <div className="coupon-report-legend"><span><i className="claims" />领券</span><span><i className="uses" />核销</span></div>
                 </div>
-                <div className="coupon-record-table report">
-                  <div><span>券名称</span><span>渠道</span><span>访问</span><span>领券</span><span>核销</span><span>核销率</span><span>GMV</span><span>成本</span></div>
-                  {usageReportRows.map(([coupon, channel, visits, claims, uses, rate, gmv, cost]) => (
-                    <div key={`${coupon}-${channel}`}>
-                      <span>{coupon}</span>
-                      <span>{channel}</span>
-                      <span>{visits}</span>
-                      <span>{claims}</span>
-                      <span>{uses}</span>
-                      <span>{rate}</span>
-                      <span>{gmv}</span>
-                      <span>{cost}</span>
+                <div className="coupon-trend-chart" aria-label={`${reportPeriodLabel}领券与核销趋势图`} style={{ gridTemplateColumns: `repeat(${reportTrendData.length}, minmax(0, 1fr))` }}>
+                  {reportTrendData.map(([day, claims, uses]) => (
+                    <div className="coupon-trend-day" key={day}>
+                      <div className="coupon-trend-bars">
+                        <i className="claims" style={{ height: `${Math.max(8, (claims / reportTrendMax) * 92)}%` }}><b>{claims}</b></i>
+                        <i className="uses" style={{ height: `${Math.max(8, (uses / reportTrendMax) * 92)}%` }}><b>{uses}</b></i>
+                      </div>
+                      <span>{day}</span>
                     </div>
                   ))}
                 </div>
               </article>
+
+              <article className="coupon-report-module coupon-report-funnel">
+                <div className="coupon-report-module-head"><div><h2>整体转化漏斗</h2><small>从入口访问到支付核销</small></div></div>
+                <div className="coupon-funnel-list">
+                  {[
+                    ['访问', reportMetrics.visits.toLocaleString('zh-CN'), '100%', 100],
+                    ['领券', reportMetrics.claims.toLocaleString('zh-CN'), `${reportClaimRate.toFixed(1)}%`, Math.max(46, reportClaimRate * 1.65)],
+                    ['核销', reportMetrics.uses.toLocaleString('zh-CN'), `${reportOverallRate.toFixed(1)}%`, Math.max(28, reportOverallRate * 2.3)],
+                  ].map(([label, value, rate, width]) => (
+                    <div key={label}>
+                      <span>{label}</span>
+                      <div><i style={{ width: `${width}%` }} /></div>
+                      <strong>{value}</strong>
+                      <em>{rate}</em>
+                    </div>
+                  ))}
+                </div>
+                <div className="coupon-funnel-summary"><span>领券后核销率<strong>{reportUseRate.toFixed(1)}%</strong></span><span>优惠投入产出<strong>{reportRoi.toFixed(1)}x</strong></span></div>
+              </article>
             </section>
+
+            <section className="coupon-report-analysis-grid">
+              <article className="coupon-report-module coupon-report-channels">
+                <div className="coupon-report-module-head"><div><h2>渠道表现</h2><small>按核销率排序，识别高质量入口</small></div></div>
+                <div className="coupon-channel-performance">
+                  {reportChannelRows.map(({ row, rate }, index) => (
+                    <div key={row[1]}>
+                      <strong>{row[1]}</strong><span>{Number(row[2]).toLocaleString('zh-CN')} 访问</span><span>{Number(row[3]).toLocaleString('zh-CN')} 领券</span>
+                      <div><i style={{ width: `${Math.max(18, 92 - index * 13)}%` }} /></div><b>{rate.toFixed(1)}%</b>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="coupon-report-module coupon-report-findings">
+                <div className="coupon-report-module-head"><div><h2>数据结论</h2><small>基于当前周期自动归纳</small></div></div>
+                <ol>
+                  {reportFindings.map(([title, detail], index) => (
+                    <li key={title}><b>{String(index + 1).padStart(2, '0')}</b><div><strong>{title}</strong><p>{detail}</p></div></li>
+                  ))}
+                </ol>
+              </article>
+            </section>
+
+            <article className="coupon-report-module coupon-report-detail">
+              <div className="coupon-report-module-head">
+                <div><h2>券批次与渠道明细</h2><small>核对访问、领券、核销、GMV 与优惠成本</small></div>
+                <span>数据更新时间：2026.09.29 11:08</span>
+              </div>
+              <div className="coupon-record-table report report-advanced-table">
+                <div><span>券名称</span><span>渠道</span><span>访问</span><span>领券</span><span>核销</span><span>核销率</span><span>GMV</span><span>成本</span><span>投入产出</span></div>
+                {currentReportRows.map(([coupon, channel, visits, claims, uses, rate, gmv, cost]) => (
+                  <div key={`${coupon}-${channel}`}>
+                    <span>{coupon}</span><span>{channel}</span><span>{visits}</span><span>{claims}</span><span>{uses}</span>
+                    <span><b className={Number.parseFloat(rate) >= 40 ? 'high' : 'normal'}>{rate}</b></span>
+                    <span>{gmv}</span><span>{cost}</span><span><strong>{(parseReportMoney(gmv) / parseReportMoney(cost)).toFixed(1)}x</strong></span>
+                  </div>
+                ))}
+              </div>
+            </article>
           </section>
         ) : isCampaignManagePage ? (
           <section className="campaign-admin-panel">
@@ -1885,21 +2223,44 @@ function CouponCenterPage() {
                 </div>
                 <button type="button" onClick={() => openCampaignForm()}>新建活动</button>
               </div>
-              <div className="campaign-filter-tabs" role="tablist" aria-label="活动状态筛选">
-                {([
-                  ['all', '全部活动'],
-                  ['draft', '草稿箱'],
-                  ['published', '已发布'],
-                ] as Array<['all' | 'draft' | 'published', string]>).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={campaignFilter === value ? 'active' : ''}
-                    onClick={() => setCampaignFilter(value)}
+              <div className="campaign-list-controls">
+                <div className="campaign-filter-tabs" role="tablist" aria-label="活动分类筛选">
+                  {([
+                    ['all', '全部活动'],
+                    ['draft', '草稿箱'],
+                    ['published', '已发布'],
+                  ] as Array<['all' | 'draft' | 'published', string]>).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={campaignFilter === value ? 'active' : ''}
+                      onClick={() => {
+                        setCampaignFilter(value)
+                        setCampaignStatusFilter('all')
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <label className="campaign-status-filter">
+                  <span>活动状态</span>
+                  <select
+                    value={campaignStatusFilter}
+                    onChange={(event) => {
+                      const value = event.target.value as 'all' | '草稿' | '进行中' | '已暂停' | '已结束'
+                      setCampaignStatusFilter(value)
+                      if (value === '草稿') setCampaignFilter('draft')
+                      else if (value !== 'all') setCampaignFilter('published')
+                    }}
                   >
-                    {label}
-                  </button>
-                ))}
+                    <option value="all">全部状态</option>
+                    <option value="草稿">草稿</option>
+                    <option value="进行中">进行中</option>
+                    <option value="已暂停">已暂停</option>
+                    <option value="已结束">已结束</option>
+                  </select>
+                </label>
               </div>
               <div className="campaign-admin-table">
                 <div>
@@ -1907,7 +2268,7 @@ function CouponCenterPage() {
                   <span>目标</span>
                   <span>渠道</span>
                   <span>优惠</span>
-                  <span>领取 / 核销</span>
+                  <span>访问 / 领券 / 核销</span>
                   <span>GMV / 成本</span>
                   <span>状态</span>
                   <span>操作</span>
@@ -1921,33 +2282,42 @@ function CouponCenterPage() {
                     <span>{campaign.goal}</span>
                     <span>{campaign.channels}</span>
                     <span>{campaign.coupon}</span>
-                    <span>{campaign.claims} / {campaign.uses}</span>
+                    <span>{campaign.visits} / {campaign.claims} / {campaign.uses}</span>
                     <span>{campaign.gmv} / {campaign.cost}</span>
                     <span><StatusBadge value={campaign.status} /></span>
-                    <span className="coupon-row-actions">
-                      <button type="button" onClick={() => setDetailCampaignId(campaign.id)}>查看详情</button>
-                      <button type="button" onClick={() => openCampaignForm(campaign.id)}>编辑</button>
-                      {campaign.status === '草稿' && (
-                        <button type="button" onClick={() => updateCampaignStatus(campaign.id, '进行中')}>发布</button>
-                      )}
-                      {campaign.status === '进行中' && (
-                        <>
-                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '已暂停')}>暂停</button>
-                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '已结束')}>结束</button>
-                        </>
-                      )}
-                      {campaign.status === '已暂停' && (
-                        <>
-                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '进行中')}>恢复</button>
-                          <button type="button" onClick={() => updateCampaignStatus(campaign.id, '已结束')}>结束</button>
-                        </>
-                      )}
-                    </span>
+                    <div className="campaign-row-actions">
+                      <div className="campaign-action-line campaign-info-actions">
+                        <div>
+                          <button type="button" onClick={() => setDetailCampaignId(campaign.id)}><Eye size={13} />查看详情</button>
+                          <button type="button" onClick={() => openCampaignForm(campaign.id)}><Pencil size={13} />编辑</button>
+                        </div>
+                      </div>
+                      <div className="campaign-action-line campaign-status-actions">
+                        <div>
+                          {campaign.status === '草稿' && (
+                            <button className="publish" type="button" onClick={() => updateCampaignStatus(campaign.id, '进行中')}><Play size={13} />发布</button>
+                          )}
+                          {campaign.status === '进行中' && (
+                            <>
+                              <button className="pause" type="button" onClick={() => updateCampaignStatus(campaign.id, '已暂停')}><Pause size={13} />暂停</button>
+                              <button className="end" type="button" onClick={() => setEndingCampaignId(campaign.id)}><CircleStop size={13} />结束</button>
+                            </>
+                          )}
+                          {campaign.status === '已暂停' && (
+                            <>
+                              <button className="resume" type="button" onClick={() => updateCampaignStatus(campaign.id, '进行中')}><Play size={13} />恢复</button>
+                              <button className="end" type="button" onClick={() => setEndingCampaignId(campaign.id)}><CircleStop size={13} />结束</button>
+                            </>
+                          )}
+                          {campaign.status === '已结束' && <span className="campaign-status-static">活动已结束</span>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
                 {filteredCampaigns.length === 0 && (
                   <div className="campaign-empty-row">
-                    <span>当前没有{campaignFilter === 'draft' ? '草稿活动' : campaignFilter === 'published' ? '已发布活动' : '活动'}，可以点击右上角新建活动。</span>
+                    <span>当前没有{campaignStatusFilter === 'all' ? (campaignFilter === 'draft' ? '草稿活动' : campaignFilter === 'published' ? '已发布活动' : '活动') : `${campaignStatusFilter}活动`}，可以调整筛选条件或点击右上角新建活动。</span>
                   </div>
                 )}
               </div>
@@ -2029,38 +2399,45 @@ function CouponCenterPage() {
                   <span>{stock.stockId}</span>
                   <span><StatusBadge value={stock.sync} /></span>
                   <span><StatusBadge value={stock.status} /></span>
-                  <span className="coupon-row-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDetailStockNo(stock.localStockNo)
-                        setFormOpen(false)
-                      }}
-                    >
-                      查看详情
-                    </button>
-                    {stock.status === '草稿' && (
-                      <>
-                        <button type="button">编辑</button>
-                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中', '已同步')}>同步启用</button>
-                      </>
-                    )}
-                    {stock.status === '进行中' && (
-                      <>
-                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '已暂停')}>暂停</button>
-                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '已结束')}>结束</button>
-                      </>
-                    )}
-                    {stock.status === '已暂停' && (
-                      <>
-                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中')}>恢复</button>
-                        <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '已结束')}>结束</button>
-                      </>
-                    )}
-                    {stock.sync === '同步失败' && (
-                      <button type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中', '已同步')}>重试同步</button>
-                    )}
-                  </span>
+                  <div className="campaign-row-actions coupon-stock-actions">
+                    <div className="campaign-action-line campaign-info-actions">
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDetailStockNo(stock.localStockNo)
+                            setFormOpen(false)
+                          }}
+                        >
+                          <Eye size={13} />查看详情
+                        </button>
+                        {stock.status === '草稿' && <button type="button"><Pencil size={13} />编辑</button>}
+                      </div>
+                    </div>
+                    <div className="campaign-action-line campaign-status-actions">
+                      <div>
+                        {stock.status === '草稿' && (
+                          <button className="publish" type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中', '已同步')}><RefreshCw size={13} />同步启用</button>
+                        )}
+                        {stock.status === '进行中' && (
+                          <>
+                            <button className="pause" type="button" onClick={() => updateStockStatus(stock.localStockNo, '已暂停')}><Pause size={13} />暂停</button>
+                            <button className="end" type="button" onClick={() => setEndingStockNo(stock.localStockNo)}><CircleStop size={13} />结束</button>
+                          </>
+                        )}
+                        {stock.status === '已暂停' && (
+                          <>
+                            <button className="resume" type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中')}><Play size={13} />恢复</button>
+                            <button className="end" type="button" onClick={() => setEndingStockNo(stock.localStockNo)}><CircleStop size={13} />结束</button>
+                          </>
+                        )}
+                        {stock.sync === '同步失败' && (
+                          <button className="resume" type="button" onClick={() => updateStockStatus(stock.localStockNo, '进行中', '已同步')}><RefreshCw size={13} />重试同步</button>
+                        )}
+                        {stock.status === '已结束' && <span className="campaign-status-static">批次已结束</span>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -2069,12 +2446,13 @@ function CouponCenterPage() {
         </section>
         ) : (
           <>
-            <section className="coupon-admin-metrics">
+            <section className="coupon-admin-metrics coupon-funnel-metrics">
               {[
-                ['今日领券', '128', '较昨日 +25.5%'],
-                ['今日核销', '47', '核销率 36.7%'],
-                ['优惠金额', '¥376', '微信商家券核销'],
+                ['访问人数', '386', '较昨日 +28.7%'],
+                ['领券人数', '128', '领取率 33.2%'],
+                ['核销订单', '47', '核销率 36.7%'],
                 ['带动 GMV', '¥1,974', '实收 ¥1,598'],
+                ['优惠成本', '¥376', '投入产出 5.3x'],
               ].map(([label, value, note]) => (
                 <div key={label}>
                   <span>{label}</span>
@@ -2335,6 +2713,44 @@ function CouponCenterPage() {
           </form>
         </div>
       )}
+      {endingCampaign && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close" type="button" onClick={() => setEndingCampaignId(null)} aria-label="关闭结束确认">
+            <X size={18} />
+          </button>
+          <section className="coupon-modal campaign-end-confirm" role="dialog" aria-modal="true" aria-label="确认结束活动">
+            <span className="campaign-end-confirm-icon"><CircleStop size={22} /></span>
+            <h2>确认结束活动？</h2>
+            <p>“{endingCampaign.name}”结束后将停止继续投放，历史领取、核销和复盘数据仍会保留。</p>
+            <div className="coupon-form-actions">
+              <button type="button" onClick={() => setEndingCampaignId(null)}>暂不结束</button>
+              <button className="campaign-confirm-end" type="button" onClick={() => {
+                updateCampaignStatus(endingCampaign.id, '已结束')
+                setEndingCampaignId(null)
+              }}><CircleStop size={14} />确认结束</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {endingStock && (
+        <div className="coupon-modal-backdrop" role="presentation">
+          <button className="coupon-modal-floating-close" type="button" onClick={() => setEndingStockNo(null)} aria-label="关闭结束确认">
+            <X size={18} />
+          </button>
+          <section className="coupon-modal campaign-end-confirm" role="dialog" aria-modal="true" aria-label="确认结束券批次">
+            <span className="campaign-end-confirm-icon"><CircleStop size={22} /></span>
+            <h2>确认结束券批次？</h2>
+            <p>“{endingStock.name}”结束后将停止继续发放，已领取券和历史核销数据仍会保留。</p>
+            <div className="coupon-form-actions">
+              <button type="button" onClick={() => setEndingStockNo(null)}>暂不结束</button>
+              <button className="campaign-confirm-end" type="button" onClick={() => {
+                updateStockStatus(endingStock.localStockNo, '已结束')
+                setEndingStockNo(null)
+              }}><CircleStop size={14} />确认结束</button>
+            </div>
+          </section>
+        </div>
+      )}
       {selectedCampaign && (
         <div className="coupon-modal-backdrop" role="presentation">
           <button className="coupon-modal-floating-close" type="button" onClick={() => setDetailCampaignId(null)} aria-label="关闭">
@@ -2349,15 +2765,16 @@ function CouponCenterPage() {
             </div>
             <div className="campaign-detail-summary">
               {[
-                ['访问', selectedCampaign.visits],
-                ['领券', selectedCampaign.claims],
-                ['核销', selectedCampaign.uses],
-                ['GMV', selectedCampaign.gmv],
-                ['优惠成本', selectedCampaign.cost],
-              ].map(([label, value]) => (
+                ['访问人数', selectedCampaign.visits, ''],
+                ['领券人数', selectedCampaign.claims, ''],
+                ['核销订单', selectedCampaign.uses, ''],
+                ['带动 GMV', selectedCampaign.gmv, ''],
+                ['优惠成本', selectedCampaign.cost, `投入产出 ${selectedCampaignReturnRatio.toFixed(1)}x`],
+              ].map(([label, value, note]) => (
                 <div key={label}>
                   <span>{label}</span>
                   <strong>{value}</strong>
+                  {note ? <small className="campaign-return-rate">{note}</small> : null}
                 </div>
               ))}
             </div>
@@ -2450,6 +2867,8 @@ function CouponCenterPage() {
 }
 function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; onSavePoster: () => void }) {
   const [qrOpen, setQrOpen] = useState(false)
+  const [shareGuideOpen, setShareGuideOpen] = useState(false)
+  const [shareNotice, setShareNotice] = useState('')
   const pageSearch = typeof window === 'undefined' ? '' : window.location.search
   const hashSearch = typeof window === 'undefined' ? '' : (window.location.hash.split('?')[1] ?? '')
   const isSharePage = new URLSearchParams(pageSearch).get('share') === '1' || new URLSearchParams(hashSearch).get('share') === '1'
@@ -2486,9 +2905,51 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       shareText: '工作日午餐轻食券，清爽、饱腹、不费脑。',
     }
   const shareUrl = `${publicCampaignBaseUrl}?share=1${page.href}`
+  const shareImageUrl = `${publicCampaignBaseUrl}${mobilePage.image}`
   const qrPreviewUrl = `https://api.qrserver.com/v1/create-qr-code/?size=92x92&margin=6&data=${encodeURIComponent(shareUrl)}`
   const qrLargeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(shareUrl)}`
+  const isWeChat = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent)
+
+  useEffect(() => {
+    const previousTitle = document.title
+    const description = document.querySelector<HTMLMetaElement>('meta[name="description"]')
+    const previousDescription = description?.content
+    document.title = `${page.title}｜盛意通`
+    if (description) description.content = mobilePage.shareText
+
+    const wechat = (window as Window & { wx?: WeChatShareApi }).wx
+    if (isWeChat && wechat) {
+      wechat.ready(() => {
+        wechat.updateAppMessageShareData?.({
+          title: page.title,
+          desc: mobilePage.shareText,
+          link: shareUrl,
+          imgUrl: shareImageUrl,
+        })
+        wechat.updateTimelineShareData?.({
+          title: `${page.title}｜${mobilePage.shareText}`,
+          link: shareUrl,
+          imgUrl: shareImageUrl,
+        })
+      })
+    }
+
+    return () => {
+      document.title = previousTitle
+      if (description && previousDescription !== undefined) description.content = previousDescription
+    }
+  }, [isWeChat, mobilePage.shareText, page.title, shareImageUrl, shareUrl])
+
+  const showShareNotice = (message: string) => {
+    setShareNotice(message)
+    window.setTimeout(() => setShareNotice(''), 2400)
+  }
+
   const shareCampaign = async () => {
+    if (isWeChat) {
+      setShareGuideOpen(true)
+      return
+    }
     try {
       if (navigator.share) {
         await navigator.share({
@@ -2499,8 +2960,10 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
         return
       }
       await navigator.clipboard?.writeText(shareUrl)
+      showShareNotice('活动链接已复制，可以发送给微信好友')
     } catch {
       await navigator.clipboard?.writeText(shareUrl)
+      showShareNotice('活动链接已复制，可以发送给微信好友')
     }
   }
 
@@ -2599,6 +3062,18 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
           </div>
         </div>
       )}
+      {shareGuideOpen && (
+        <div className="wechat-share-guide" role="dialog" aria-modal="true" aria-label="微信分享提示" onClick={() => setShareGuideOpen(false)}>
+          <div className="wechat-share-guide-arrow" aria-hidden="true"><ArrowUp size={30} /></div>
+          <div className="wechat-share-guide-card" onClick={(event) => event.stopPropagation()}>
+            <span>微信分享</span>
+            <strong>点击右上角“···”</strong>
+            <p>选择“发送给朋友”或“分享到朋友圈”，分享卡片将带上当前活动标题、文案和海报。</p>
+            <button type="button" onClick={() => setShareGuideOpen(false)}>知道了</button>
+          </div>
+        </div>
+      )}
+      {shareNotice && <div className="campaign-share-notice" role="status">{shareNotice}</div>}
     </div>
   )
 }
@@ -2719,6 +3194,115 @@ function CreativeMarkdownAnswer({ output }: { output: CreativeOutput }) {
         }
         return <p key={`md-${index}`}>{renderMarkdownInline(block.text, `md-${index}`)}</p>
       })}
+    </div>
+  )
+}
+
+function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenario; onCopyLink: () => void }) {
+  const [runId, setRunId] = useState(0)
+  const [activeStep, setActiveStep] = useState(0)
+  const finalAnswerRef = useRef<HTMLDivElement>(null)
+  const finished = activeStep >= marketingSimulationSteps.length
+  const shareUrl = `${publicCampaignBaseUrl}${scenario.marketingPage?.href ?? ''}`
+
+  useEffect(() => {
+    let currentStep = 0
+    let timer: number | undefined
+    let cancelled = false
+    setActiveStep(0)
+
+    const advance = () => {
+      timer = window.setTimeout(() => {
+        if (cancelled) return
+        currentStep += 1
+        setActiveStep(currentStep)
+        if (currentStep < marketingSimulationSteps.length) advance()
+      }, 1050)
+    }
+
+    advance()
+    return () => {
+      cancelled = true
+      if (timer) window.clearTimeout(timer)
+    }
+  }, [runId])
+
+  useEffect(() => {
+    if (!finished) return
+    window.setTimeout(() => finalAnswerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120)
+  }, [finished])
+
+  const progress = finished ? 100 : Math.round(((activeStep + 0.45) / marketingSimulationSteps.length) * 100)
+
+  return (
+    <div className="marketing-simulation" aria-live="polite">
+      <div className="simulation-head">
+        <div>
+          <span>AI 执行过程</span>
+          <strong>{finished ? '活动已生成' : '正在为你创建营销活动'}</strong>
+          <small>{finished ? `${marketingSimulationSteps.length} 个步骤全部完成` : `当前步骤 ${activeStep + 1} / ${marketingSimulationSteps.length}`}</small>
+        </div>
+        <button type="button" onClick={() => setRunId((value) => value + 1)}>
+          <RefreshCw size={14} />
+          重新演示
+        </button>
+      </div>
+      <div className="simulation-progress" aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
+
+      <div className="simulation-steps">
+        {marketingSimulationSteps.map((step, index) => {
+          const done = index < activeStep
+          const running = index === activeStep && !finished
+          const StepIcon = step.kind === 'thinking'
+            ? Sparkles
+            : step.kind === 'skill'
+              ? WandSparkles
+              : step.kind === 'mcp'
+                ? Database
+                : MessageSquare
+          return (
+            <div className={`simulation-step ${done ? 'done' : running ? 'running' : 'waiting'}`} key={step.title}>
+              <span className="simulation-step-icon">{done ? <Check size={14} /> : running ? <LoaderCircle className="simulation-spinner" size={15} /> : <StepIcon size={14} />}</span>
+              <div>
+                <strong>{step.title}</strong>
+                <small>{running ? step.waitingText : step.detail}</small>
+              </div>
+              <b>{done ? '已完成' : running ? '执行中' : '等待'}</b>
+            </div>
+          )
+        })}
+      </div>
+
+      {!finished && (
+        <div className="simulation-waiting">
+          <LoaderCircle className="simulation-spinner" size={16} />
+          <span>{marketingSimulationSteps[activeStep]?.waitingText}...</span>
+        </div>
+      )}
+
+      {finished && (
+        <div className="simulation-final" ref={finalAnswerRef}>
+          <div className="simulation-answer-title">
+            <Check size={17} />
+            <div><span>回答信息</span><strong>工作日午餐营销活动已生成</strong></div>
+          </div>
+          {scenario.creativeOutput && <CreativeMarkdownAnswer output={scenario.creativeOutput} />}
+          {scenario.marketingPage && (
+            <div className="simulation-share-link">
+              <Share2 size={18} />
+              <div>
+                <span>活动分享链接</span>
+                <a href={scenario.marketingPage.href} target="_blank" rel="noreferrer">{shareUrl}<ExternalLink size={13} /></a>
+                <small>可直接分享到微信群、朋友圈或生成二维码，顾客打开后进入活动领券页。</small>
+              </div>
+              <button type="button" onClick={() => {
+                navigator.clipboard?.writeText(shareUrl)
+                onCopyLink()
+              }}><Copy size={14} />复制链接</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -3033,21 +3617,10 @@ export default function App() {
                 <span>{activeScenario.kind}</span>
               </div>
               {activeScenario.id === 'marketing-page' && activeScenario.marketingPage ? (
-                <>
-                  {activeScenario.creativeOutput && <CreativeMarkdownAnswer output={activeScenario.creativeOutput} />}
-
-                  <div className="report-link-card">
-                    <LayoutDashboard size={18} />
-                    <div>
-                      <span>已生成领取页</span>
-                      <a href={activeScenario.marketingPage.href} target="_blank" rel="noreferrer">
-                        {activeScenario.marketingPage.title}
-                        <ExternalLink size={14} />
-                      </a>
-                      <p>{activeScenario.marketingPage.description}</p>
-                    </div>
-                  </div>
-                </>
+                <MarketingSimulationAnswer
+                  scenario={activeScenario}
+                  onCopyLink={() => notify('活动分享链接已复制')}
+                />
               ) : activeScenario.creativeOutput ? (
                 <>
                   <CreativeMarkdownAnswer output={activeScenario.creativeOutput} />
@@ -3283,10 +3856,11 @@ export default function App() {
             <div className="context-title"><span>活动指标</span><small>{activeScenario.context.updatedAt} 更新</small></div>
             <div className="mini-metrics">
               {[
-                ['页面访问', '386', '+86', 'up'],
-                ['领券人数', '128', '33.2%', 'up'],
-                ['核销订单', '47', '36.7%', 'up'],
-                ['优惠抵扣', '¥376', '自动抵扣', 'flat'],
+                ['访问人数', '386', '+86', 'up'],
+                ['领券人数', '128', '领取率 33.2%', 'flat'],
+                ['核销订单', '47', '核销率 36.7%', 'flat'],
+                ['带动 GMV', '¥1,974', '+18.2%', 'up'],
+                ['优惠成本', '¥376', '投入产出 5.3x', 'flat'],
               ].map(([label, value, delta, trend]) => <div key={label}><span>{label}</span><strong>{value}</strong><small className={trend}>{delta}</small></div>)}
             </div>
           </section>
