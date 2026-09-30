@@ -3354,7 +3354,7 @@ function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenari
               <Share2 size={18} />
               <div>
                 <span>活动分享链接</span>
-                <a href={scenario.marketingPage.href} target="_blank" rel="noreferrer">{shareUrl}<ExternalLink size={13} /></a>
+                <a href={scenario.marketingPage.href} target="_blank" rel="noreferrer">{scenario.marketingPage.title}<ExternalLink size={13} /></a>
                 <small>可直接分享到微信群、朋友圈或生成二维码，顾客打开后进入活动领券页。</small>
               </div>
               <button type="button" onClick={() => {
