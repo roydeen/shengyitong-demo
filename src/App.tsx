@@ -2888,6 +2888,8 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
   const [qrOpen, setQrOpen] = useState(false)
   const [shareGuideOpen, setShareGuideOpen] = useState(false)
   const [shareNotice, setShareNotice] = useState('')
+  const [claimPhone, setClaimPhone] = useState('')
+  const [claimFeedback, setClaimFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null)
   const pageSearch = typeof window === 'undefined' ? '' : window.location.search
   const hashSearch = typeof window === 'undefined' ? '' : (window.location.hash.split('?')[1] ?? '')
   const isSharePage = new URLSearchParams(pageSearch).get('share') === '1' || new URLSearchParams(hashSearch).get('share') === '1'
@@ -3013,6 +3015,15 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
     window.setTimeout(() => setShareNotice(''), 2400)
   }
 
+  const claimCoupon = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!/^1[3-9]\d{9}$/.test(claimPhone)) {
+      setClaimFeedback({ type: 'error', message: '手机号格式有误，请输入正确的 11 位手机号' })
+      return
+    }
+    setClaimFeedback({ type: 'success', message: '领券成功，优惠券已放入你的微信券包' })
+  }
+
   const shareCampaign = async () => {
     if (isWeChat) {
       try {
@@ -3106,9 +3117,36 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
               <small>限时优惠券</small>
               <strong>{page.coupon}</strong>
               <p>登录会员账号领取；新顾客也可以输入手机号领取。</p>
-              <form onSubmit={(event) => event.preventDefault()}>
-                <input aria-label="手机号" placeholder="输入手机号领取优惠券" />
-                <button type="submit">领取</button>
+              <form onSubmit={claimCoupon} noValidate>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  maxLength={11}
+                  value={claimPhone}
+                  aria-label="手机号"
+                  aria-invalid={claimFeedback?.type === 'error'}
+                  aria-describedby={claimFeedback ? 'campaign-claim-feedback' : undefined}
+                  className={claimFeedback?.type ?? ''}
+                  placeholder="输入手机号领取优惠券"
+                  onChange={(event) => {
+                    setClaimPhone(event.target.value.replace(/\D/g, '').slice(0, 11))
+                    setClaimFeedback(null)
+                  }}
+                />
+                <button type="submit" disabled={claimFeedback?.type === 'success'}>
+                  {claimFeedback?.type === 'success' ? '已领取' : '领取'}
+                </button>
+                {claimFeedback && (
+                  <div
+                    id="campaign-claim-feedback"
+                    className={`campaign-claim-feedback ${claimFeedback.type}`}
+                    role={claimFeedback.type === 'error' ? 'alert' : 'status'}
+                  >
+                    {claimFeedback.type === 'success' ? <Check size={14} /> : <CircleStop size={14} />}
+                    <span>{claimFeedback.message}</span>
+                  </div>
+                )}
               </form>
             </section>
 
