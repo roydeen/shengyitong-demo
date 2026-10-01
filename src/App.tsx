@@ -167,7 +167,7 @@ const campaignMerchantName = '杭州西湖店'
 const campaignShareVersion = '20260929-2'
 const getCampaignShareSlug = (href: string) => href.includes('weekend-banquet') ? 'weekend-banquet' : 'spring-salad'
 const getCampaignShareUrl = (href: string) => `${publicCampaignBaseUrl}share/${getCampaignShareSlug(href)}.html?v=${campaignShareVersion}`
-const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.png`
+const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.jpg`
 const copyShareTargets: CopyShareTarget[] = [
   {
     id: 'wechat-moments',
@@ -360,7 +360,7 @@ const scenarios: Scenario[] = [
 
 按 3:4 竖版生成，适合朋友圈、小红书和抖音的信息流展示；画面保留上方标题区、中间产品图和底部优惠券。
 
-![工作日轻食午餐](campaign-light-meal-poster-3x4.png)`,
+![工作日轻食午餐](campaign-light-meal-poster-3x4.jpg)`,
     },
     findings: [
       {
@@ -606,7 +606,7 @@ const scenarios: Scenario[] = [
 
 ### 海报图片
 
-![高级中餐宴请](campaign-premium-banquet-3x4.png)
+![高级中餐宴请](campaign-premium-banquet-3x4.jpg)
 
 ### 系统配置
 
@@ -2894,7 +2894,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
   const isBanquetPage = page.href.includes('weekend-banquet')
   const mobilePage = isBanquetPage
     ? {
-      image: 'campaign-premium-banquet-3x4.png',
+      image: 'campaign-premium-banquet-3x4.jpg',
       imageAlt: '高级中餐宴请海报',
       kicker: '杭州西湖店 · 周末宴请',
       title: '周末雅宴，体面请客更从容',
@@ -2909,7 +2909,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       shareText: '周末宴请会员礼，提前预订更从容。',
     }
     : {
-      image: 'campaign-light-meal-poster-3x4.png',
+      image: 'campaign-light-meal-poster-3x4.jpg',
       imageAlt: '工作日轻食午餐海报',
       kicker: '杭州西湖店 · 工作日午餐',
       title: '今天午餐，吃轻一点也吃饱一点',
