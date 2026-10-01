@@ -3376,7 +3376,7 @@ function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenari
 export default function App() {
   const [activeId, setActiveId] = useState('marketing-page')
   const [prompt, setPrompt] = useState('')
-  const [rightOpen, setRightOpen] = useState(true)
+  const [rightOpen, setRightOpen] = useState(() => !window.matchMedia('(max-width: 760px)').matches)
   const [leftOpen, setLeftOpen] = useState(false)
   const [appRouteHash, setAppRouteHash] = useState(() => window.location.hash)
   const [customPrompt, setCustomPrompt] = useState('')
@@ -3397,6 +3397,16 @@ export default function App() {
     const syncRouteHash = () => setAppRouteHash(window.location.hash)
     window.addEventListener('hashchange', syncRouteHash)
     return () => window.removeEventListener('hashchange', syncRouteHash)
+  }, [])
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 760px)')
+    const syncMobileLayout = () => {
+      if (mobileQuery.matches) setRightOpen(false)
+    }
+    syncMobileLayout()
+    mobileQuery.addEventListener('change', syncMobileLayout)
+    return () => mobileQuery.removeEventListener('change', syncMobileLayout)
   }, [])
 
   const activeScenario = useMemo(
