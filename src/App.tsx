@@ -177,13 +177,6 @@ const copyShareTargets: CopyShareTarget[] = [
     text: '杭州西湖店今日轻食套餐已上新：鸡胸、牛油果、时蔬和青提茉莉，清爽但不寡淡。午高峰前下单，会员可领满减券。',
   },
   {
-    id: 'douyin',
-    action: '分享到抖音',
-    appName: '抖音',
-    title: '杭州西湖店午餐 15 分钟出餐',
-    text: '不想吃太油，又不想饿着？今天试试这份轻食套餐。现做、可自提、可外卖，结尾领券更划算。',
-  },
-  {
     id: 'xiaohongshu',
     action: '分享到小红书',
     appName: '小红书',
@@ -922,10 +915,32 @@ const historySessions: HistorySession[] = [
   },
 ]
 
-const randomSuggestionIds = () => [...scenarios]
-  .sort(() => Math.random() - 0.5)
-  .slice(0, 4)
-  .map((scenario) => scenario.id)
+const guidedSessionKeywords: Record<string, string[]> = {
+  'marketing-page': ['工作日', '午餐', '领券', '活动'],
+  'copy-platform': ['文案', '朋友圈', '小红书', '抖音', '海报'],
+  'analysis-reusable-page': ['周末', '宴请', '营销活动', '优惠券'],
+}
+
+const normalizePrompt = (value: string) => value.toLowerCase().replace(/[\s，。！？、；：,.!?;:（）()“”"']/g, '')
+
+const findGuidedSession = (value: string) => {
+  const normalized = normalizePrompt(value)
+  const exactMatch = historySessions.find((session) => {
+    const scenario = scenarios.find((item) => item.id === session.scenarioId)
+    return [session.prompt, session.title, scenario?.question, scenario?.starter]
+      .filter(Boolean)
+      .some((candidate) => normalizePrompt(String(candidate)) === normalized)
+  })
+  if (exactMatch) return exactMatch
+
+  const scored = historySessions
+    .map((session) => ({
+      session,
+      score: (guidedSessionKeywords[session.scenarioId] ?? []).filter((keyword) => value.includes(keyword)).length,
+    }))
+    .sort((left, right) => right.score - left.score)
+  return scored[0]?.score >= 2 ? scored[0].session : undefined
+}
 
 function ReportPage({ report, pinned, onPin }: { report: ReportArtifact; pinned: boolean; onPin: () => void }) {
   const summaryCards = [
@@ -3261,9 +3276,8 @@ function CreativeMarkdownAnswer({ output }: { output: CreativeOutput }) {
 }
 
 function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenario; onCopyLink: () => void }) {
-  const [runId, setRunId] = useState(0)
   const [activeStep, setActiveStep] = useState(0)
-  const finalAnswerRef = useRef<HTMLDivElement>(null)
+  const shareLinkRef = useRef<HTMLDivElement>(null)
   const finished = activeStep >= marketingSimulationSteps.length
   const shareUrl = getCampaignShareUrl(scenario.marketingPage?.href ?? '#/campaigns/spring-salad')
 
@@ -3287,30 +3301,20 @@ function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenari
       cancelled = true
       if (timer) window.clearTimeout(timer)
     }
-  }, [runId])
+  }, [])
 
   useEffect(() => {
     if (!finished) return
-    window.setTimeout(() => finalAnswerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120)
+    const timer = window.setTimeout(() => {
+      const thread = shareLinkRef.current?.closest<HTMLElement>('.thread')
+      if (!thread) return
+      thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' })
+    }, 120)
+    return () => window.clearTimeout(timer)
   }, [finished])
-
-  const progress = finished ? 100 : Math.round(((activeStep + 0.45) / marketingSimulationSteps.length) * 100)
 
   return (
     <div className="marketing-simulation" aria-live="polite">
-      <div className="simulation-head">
-        <div>
-          <span>AI 执行过程</span>
-          <strong>{finished ? '活动已生成' : '正在为你创建营销活动'}</strong>
-          <small>{finished ? `${marketingSimulationSteps.length} 个步骤全部完成` : `当前步骤 ${activeStep + 1} / ${marketingSimulationSteps.length}`}</small>
-        </div>
-        <button type="button" onClick={() => setRunId((value) => value + 1)}>
-          <RefreshCw size={14} />
-          重新演示
-        </button>
-      </div>
-      <div className="simulation-progress" aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
-
       <div className="simulation-steps">
         {marketingSimulationSteps.map((step, index) => {
           const done = index < activeStep
@@ -3343,14 +3347,14 @@ function MarketingSimulationAnswer({ scenario, onCopyLink }: { scenario: Scenari
       )}
 
       {finished && (
-        <div className="simulation-final" ref={finalAnswerRef}>
+        <div className="simulation-final">
           <div className="simulation-answer-title">
             <Check size={17} />
             <div><span>回答信息</span><strong>工作日午餐营销活动已生成</strong></div>
           </div>
           {scenario.creativeOutput && <CreativeMarkdownAnswer output={scenario.creativeOutput} />}
           {scenario.marketingPage && (
-            <div className="simulation-share-link">
+            <div className="simulation-share-link" ref={shareLinkRef}>
               <Share2 size={18} />
               <div>
                 <span>活动分享链接</span>
@@ -3376,14 +3380,17 @@ export default function App() {
   const [leftOpen, setLeftOpen] = useState(false)
   const [appRouteHash, setAppRouteHash] = useState(() => window.location.hash)
   const [customPrompt, setCustomPrompt] = useState('')
-  const [activeHistoryId, setActiveHistoryId] = useState<string | null>('history-marketing-page')
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null)
+  const [sessionHistory, setSessionHistory] = useState<HistorySession[]>([])
+  const [pendingGuideId, setPendingGuideId] = useState<string | null>(null)
+  const [guideFallbackPrompt, setGuideFallbackPrompt] = useState('')
   const [approved, setApproved] = useState(false)
   const [toast, setToast] = useState('')
   const [usage, setUsage] = useState(getInitialUsage)
-  const [suggestionIds, setSuggestionIds] = useState(randomSuggestionIds)
   const [railFocus, setRailFocus] = useState<RailFocus>('balanced')
   const [reportPinned, setReportPinned] = useState(isReportPinned)
   const [copyShareTargetId, setCopyShareTargetId] = useState<CopyShareTargetId | null>(null)
+  const composerInputRef = useRef<HTMLTextAreaElement>(null)
   const hideCommonFeatures = true
 
   useEffect(() => {
@@ -3466,6 +3473,8 @@ export default function App() {
     setActiveId(scenario.id)
     setCustomPrompt(scenario.question)
     setActiveHistoryId(null)
+    setGuideFallbackPrompt('')
+    setPendingGuideId(null)
     setApproved(false)
     setLeftOpen(false)
     setUsage((current) => ({
@@ -3504,35 +3513,68 @@ export default function App() {
     setActiveId(session.scenarioId)
     setCustomPrompt(session.prompt)
     setActiveHistoryId(session.id)
+    setGuideFallbackPrompt('')
+    setPendingGuideId(null)
     setApproved(false)
     setLeftOpen(false)
     notify(`已加载历史会话：${session.title}`)
   }
 
-  const startNewSession = (message: string) => {
-    const nextPrompt = message.trim()
-    if (!nextPrompt) return
-    setCustomPrompt(nextPrompt)
-    setActiveHistoryId(null)
-    setApproved(false)
+  const fillGuidedPrompt = (session: HistorySession) => {
+    setActiveId(session.scenarioId)
+    setPrompt(session.prompt)
+    setPendingGuideId(session.id)
     setLeftOpen(false)
-    notify('新会话已开始')
+    window.setTimeout(() => composerInputRef.current?.focus(), 0)
+    notify('问题已填入，点击发送后创建会话')
   }
 
   const createNewSession = () => {
     setCustomPrompt('')
     setActiveHistoryId(null)
+    setGuideFallbackPrompt('')
+    setPendingGuideId(null)
     setApproved(false)
     setPrompt('')
-    setSuggestionIds(randomSuggestionIds())
     setLeftOpen(false)
     notify('已新建会话，请在下方输入问题')
   }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!prompt.trim()) return
-    startNewSession(prompt)
+    const nextPrompt = prompt.trim()
+    if (!nextPrompt) return
+    const pendingSession = pendingGuideId
+      ? historySessions.find((session) => session.id === pendingGuideId && normalizePrompt(session.prompt) === normalizePrompt(nextPrompt))
+      : undefined
+    const matchedSession = pendingSession ?? findGuidedSession(nextPrompt)
+
+    setCustomPrompt(nextPrompt)
+    setApproved(false)
+    setLeftOpen(false)
+    setPendingGuideId(null)
+
+    if (matchedSession) {
+      const nextSession = { ...matchedSession, prompt: nextPrompt, time: '刚刚' }
+      setActiveId(matchedSession.scenarioId)
+      setActiveHistoryId(matchedSession.id)
+      setGuideFallbackPrompt('')
+      setSessionHistory((sessions) => [nextSession, ...sessions.filter((session) => session.id !== nextSession.id)])
+      setUsage((current) => ({
+        ...current,
+        [matchedSession.scenarioId]: {
+          ...(current[matchedSession.scenarioId] ?? { fixed: false, useCount: 0, lastUsed: '', order: 0, hidden: false }),
+          useCount: (current[matchedSession.scenarioId]?.useCount ?? 0) + 1,
+          lastUsed: '刚刚',
+          order: Math.max(...Object.values(current).map((item) => item.order)) + 1,
+        },
+      }))
+      notify(`已创建会话：${matchedSession.title}`)
+    } else {
+      setActiveHistoryId(null)
+      setGuideFallbackPrompt(nextPrompt)
+      notify('已为你整理可继续体验的会话')
+    }
     setPrompt('')
   }
 
@@ -3617,27 +3659,29 @@ export default function App() {
               })}
             </div>
           </section>
-          <section className="rail-block history">
-            <div className="rail-section-head">
-              <p className="rail-label">会话</p>
-              <button
-                className="rail-more-button"
-                aria-pressed={railFocus === 'history'}
-                onClick={() => setRailFocus((current) => current === 'history' ? 'balanced' : 'history')}
-                hidden={hideCommonFeatures}
-              >
-                查看更多
-              </button>
-            </div>
-            <div className="rail-scroll">
-              {historySessions.map((session) => (
-                <button className={`history-link ${session.id === activeHistoryId ? 'active' : ''}`} key={session.id} onClick={() => openHistorySession(session)}>
-                  <MessageSquare size={15} />
-                  <span>{session.title}<small>{session.time} · {session.summary}</small></span>
+          {sessionHistory.length > 0 && (
+            <section className="rail-block history">
+              <div className="rail-section-head">
+                <p className="rail-label">会话</p>
+                <button
+                  className="rail-more-button"
+                  aria-pressed={railFocus === 'history'}
+                  onClick={() => setRailFocus((current) => current === 'history' ? 'balanced' : 'history')}
+                  hidden={hideCommonFeatures}
+                >
+                  查看更多
                 </button>
-              ))}
-            </div>
-          </section>
+              </div>
+              <div className="rail-scroll">
+                {sessionHistory.map((session) => (
+                  <button className={`history-link ${session.id === activeHistoryId ? 'active' : ''}`} key={session.id} onClick={() => openHistorySession(session)}>
+                    <MessageSquare size={15} />
+                    <span>{session.title}<small>{session.time} · {session.summary}</small></span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
         <div className="rail-footer">
           <div className="account"><span>林</span><div><strong>林店长</strong><small>杭州西湖店</small></div></div>
@@ -3648,7 +3692,7 @@ export default function App() {
         <header className="conversation-bar">
           <div>
             <button className="icon-btn open-mobile" aria-label="打开菜单" onClick={() => setLeftOpen(true)}><Menu size={19} /></button>
-            <button className="store-button"><MessageSquare size={16} /><span>{sentPrompt ? activeScenario.title : '新会话'}</span><ChevronDown size={14} /></button>
+            <button className="store-button"><MessageSquare size={16} /><span>{sentPrompt && !guideFallbackPrompt ? activeScenario.title : '新会话'}</span><ChevronDown size={14} /></button>
           </div>
           <div>
             <button className="store-button context-store"><Store size={16} /><span>杭州西湖店</span><ChevronDown size={14} /></button>
@@ -3663,7 +3707,7 @@ export default function App() {
           {!sentPrompt && (
             <div className="thread-title">
               <div className="agent-symbol"><Sparkles size={20} /></div>
-              <div><h1>今天想先处理什么？</h1></div>
+              <div><p>你好，林店长</p><h1>今天想先处理什么？</h1></div>
             </div>
           )}
 
@@ -3676,9 +3720,22 @@ export default function App() {
           <section className="message assistant-message">
             <div className="agent-content">
               <div className="answer-head">
-                <span>{activeScenario.kind}</span>
+                <span>{guideFallbackPrompt ? '需求引导' : activeScenario.kind}</span>
               </div>
-              {activeScenario.id === 'marketing-page' && activeScenario.marketingPage ? (
+              {guideFallbackPrompt ? (
+                <div className="guided-fallback">
+                  <h2>我还没有找到完全匹配的演示会话</h2>
+                  <p>当前 Demo 已准备好以下 3 个完整会话。选择一个问题后，我会先填入输入框，发送后再展开对应会话。</p>
+                  <div className="guided-fallback-list">
+                    {historySessions.map((session) => (
+                      <button type="button" key={`fallback-${session.id}`} onClick={() => fillGuidedPrompt(session)}>
+                        <Sparkles size={16} />
+                        <span><strong>{session.title}</strong><small>{session.prompt}</small></span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : activeScenario.id === 'marketing-page' && activeScenario.marketingPage ? (
                 <MarketingSimulationAnswer
                   scenario={activeScenario}
                   onCopyLink={() => notify('活动分享链接已复制')}
@@ -3844,13 +3901,7 @@ export default function App() {
             </div>
           </section>
             </>
-          ) : (
-            <section className="empty-chat">
-              <div>
-                <p>可以直接输入一个经营目标，也可以从左侧常用功能或历史会话开始。</p>
-              </div>
-            </section>
-          )}
+          ) : null}
         </main>
 
         <div className="composer-wrap">
@@ -3858,24 +3909,30 @@ export default function App() {
             <>
               <div className="composer-title"><span>新会话</span><small>可以追问、改目标，或临时发起一个经营任务</small></div>
               <div className="suggestions">
-                {scenarios
-                  .filter((item) => suggestionIds.includes(item.id))
-                  .map((item) => (
+                {historySessions.map((session) => (
                     <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveId(item.id)
-                        setPrompt(item.starter)
-                      }}
+                      key={`suggestion-${session.id}`}
+                      onClick={() => fillGuidedPrompt(session)}
                     >
-                      {item.starter}
+                      {session.title}
                     </button>
                   ))}
               </div>
             </>
           )}
           <form className="composer" onSubmit={submit}>
-            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="交代一个经营任务，或继续追问…" aria-label="输入经营任务" rows={2} />
+            <textarea
+              ref={composerInputRef}
+              value={prompt}
+              onChange={(event) => {
+                setPrompt(event.target.value)
+                const pendingSession = pendingGuideId ? historySessions.find((session) => session.id === pendingGuideId) : undefined
+                if (pendingSession && normalizePrompt(event.target.value) !== normalizePrompt(pendingSession.prompt)) setPendingGuideId(null)
+              }}
+              placeholder="交代一个经营任务，或继续追问…"
+              aria-label="输入经营任务"
+              rows={2}
+            />
             <div className="composer-meta">
               <span />
               <button className="send-button" aria-label="发送" disabled={!prompt.trim()}><ArrowUp size={18} /></button>
