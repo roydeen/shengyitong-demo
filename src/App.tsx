@@ -93,6 +93,7 @@ type CopyShareTarget = {
   appName: string
   title: string
   text: string
+  imageUrl?: string
 }
 type UsageState = {
   fixed: boolean
@@ -161,6 +162,7 @@ const tools: Array<[string, LucideIcon]> = [
 const reportScenarioId = 'report-channel-persisted'
 const pinnedReportKey = 'shengyitong:pinned-report:channel-profit'
 const pinnedReportEvent = 'shengyitong:pinned-report-changed'
+const aiAssistantMinimizedKey = 'shengyitong:ai-assistant-minimized'
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
 const publicCampaignBaseUrl = 'https://roydeen.github.io/shengyitong-demo/'
 const campaignMerchantName = '杭州西湖店'
@@ -168,6 +170,23 @@ const campaignShareVersion = '20260929-2'
 const getCampaignShareSlug = (href: string) => href.includes('weekend-banquet') ? 'weekend-banquet' : 'spring-salad'
 const getCampaignShareUrl = (href: string) => `${publicCampaignBaseUrl}share/${getCampaignShareSlug(href)}.html?v=${campaignShareVersion}`
 const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.jpg`
+
+const getInitialAiAssistantMinimized = () => {
+  try {
+    return window.localStorage.getItem(aiAssistantMinimizedKey) === 'true'
+  } catch {
+    return false
+  }
+}
+
+const persistAiAssistantMinimized = (minimized: boolean) => {
+  try {
+    window.localStorage.setItem(aiAssistantMinimizedKey, String(minimized))
+  } catch {
+    // Local storage can be unavailable in privacy-restricted browser contexts.
+  }
+}
+
 const copyShareTargets: CopyShareTarget[] = [
   {
     id: 'wechat-moments',
@@ -184,8 +203,27 @@ const copyShareTargets: CopyShareTarget[] = [
     text: '这份轻食不会只有草。鸡胸够嫩，牛油果增加饱腹感，青提茉莉清爽解腻，适合下午还要开会、不想犯困的时候。',
   },
 ]
+const nationalDayShareImageUrl = `${publicCampaignBaseUrl}campaign-national-day-poster-3x4.jpg?v=20261003-2`
+const nationalDayShareTargets: CopyShareTarget[] = [
+  {
+    id: 'wechat-moments',
+    action: '分享到朋友圈',
+    appName: '微信',
+    title: '国庆相聚，来西湖边吃顿好饭',
+    text: '国庆假期，难得和家人朋友坐下来好好吃顿饭。杭州西湖店已准备好清爽轻食与精致中餐，祝大家国庆快乐，山河锦绣，团聚有味。',
+    imageUrl: nationalDayShareImageUrl,
+  },
+  {
+    id: 'xiaohongshu',
+    action: '分享到小红书',
+    appName: '小红书',
+    title: '国庆来杭州，西湖边这顿聚餐可以安排',
+    text: '逛完西湖想找一家环境舒服、适合多人聚餐的店，可以把杭州西湖店加入行程。家庭聚餐、朋友小聚都合适，假期热门时段建议提前预订。',
+    imageUrl: nationalDayShareImageUrl,
+  },
+]
 const getCopyShareUrl = (target: CopyShareTarget) =>
-  `${publicCampaignBaseUrl}?copy_share=1&platform=${target.id}&title=${encodeURIComponent(target.title)}&text=${encodeURIComponent(target.text)}&image=${encodeURIComponent(copyShareImageUrl)}`
+  `${publicCampaignBaseUrl}?copy_share=1&platform=${target.id}&title=${encodeURIComponent(target.title)}&text=${encodeURIComponent(target.text)}&image=${encodeURIComponent(target.imageUrl ?? copyShareImageUrl)}`
 const channelReport: ReportArtifact = {
   title: '近7天渠道毛利与退款分析报表',
   href: '#/reports/channel-profit',
@@ -262,6 +300,137 @@ const weekendBanquetCampaign: MarketingPageArtifact = {
 }
 
 const scenarios: Scenario[] = [
+  {
+    id: 'lunch-reminder-plan',
+    kind: '营销活动类',
+    title: '午餐券到期提醒方案',
+    question: '为已经领取午餐券但还没有核销的会员，生成一份提醒方案。',
+    starter: '生成午餐券到期提醒',
+    time: '刚刚',
+    icon: Bell,
+    intro: '我会根据领券时间、会员价值和历史响应情况筛选提醒对象，生成发送时间、短信内容和效果预估。',
+    steps: [
+      ['筛选目标会员', '从 81 名已领未核销会员中识别 42 名符合提醒条件的高意向用户'],
+      ['校验触达条件', '排除已退订、近 24 小时已触达和不在营销授权范围内的会员'],
+      ['生成提醒内容', '短信明确优惠券名称、优惠金额、适用时段和到期日期'],
+    ],
+    summary: '已生成午餐券到期提醒方案，目标是以较低触达成本提升午餐券核销率。正式发送前仍需店长确认。',
+    creativeOutput: {
+      markdown: `## 午餐券到期提醒方案
+
+已完成用户筛选、触达时机判断和短信内容生成，方案如下：
+
+### 目标用户
+
+- **待提醒人数：** 42 人
+- **筛选条件：** 已领取“满 39 减 8 元午餐券”、尚未核销、近 30 天有午餐消费记录
+- **已排除：** 近 24 小时已触达、已退订或缺少营销授权的会员
+
+### 发送安排
+
+- **建议时间：** 今天 10:30
+- **触达渠道：** 营销短信
+
+### 优惠券信息
+
+- **券名称：** 工作日午餐轻食券
+- **优惠内容：** 满 39 减 8 元
+- **使用时段：** 工作日 11:00–14:00
+- **到期日期：** 2026 年 9 月 30 日
+
+### 短信内容
+
+> 【杭州西湖店】您领取的“工作日午餐轻食券”（满39减8）将于9月30日到期，仅限工作日11:00–14:00使用，到店微信支付自动抵扣，请及时使用。
+
+### 预计效果
+
+- **预计新增核销：** 12–18 单
+- **预计带动 GMV：** ¥780–¥1,200
+- **预计短信成本：** ¥2.10`,
+    },
+    findings: [],
+    nextActions: ['确认发送短信', '调整发送时间', '编辑短信内容'],
+    context: {
+      updatedAt: '刚刚',
+      permissions: [
+        ['可读取', '领券记录、会员画像、历史消费'],
+        ['可生成', '目标人群、到期提醒短信、优惠券信息'],
+        ['需批准', '正式发送短信'],
+      ],
+      references: [
+        ['午餐券领券记录', '128 人领券、47 人核销、81 人未核销', TicketPercent],
+        ['会员营销授权', '已完成触达资格校验', ShieldCheck],
+      ],
+    },
+  },
+  {
+    id: 'national-day-copy',
+    kind: '营销活动类',
+    title: '生成国庆节平台文案',
+    question: '国庆节到了，帮我生成一组适合朋友圈和小红书发布的节日文案，再给我一张适合转发的 3:4 竖版海报。',
+    starter: '生成国庆节朋友圈和小红书文案',
+    time: '刚刚',
+    icon: PenLine,
+    intro: '我会结合国庆假期、门店特色和不同平台的表达方式，分别生成朋友圈与小红书文案，并配套节日海报。',
+    steps: [
+      ['识别节日场景', '围绕国庆出游、家庭聚餐和朋友小聚提炼内容主题'],
+      ['匹配平台语气', '朋友圈突出节日问候与到店理由，小红书突出西湖周边聚餐体验'],
+      ['输出文案与海报', '生成两版平台文案、行动引导和 3:4 国庆主题海报'],
+    ],
+    summary: '已生成国庆节朋友圈和小红书文案。朋友圈适合节前预热和熟客转发，小红书适合承接假期出游及聚餐搜索。',
+    creativeOutput: {
+      markdown: `## 国庆节朋友圈与小红书文案
+
+围绕“国庆相聚”和“西湖边吃顿好饭”生成两版内容，并配套一张 3:4 竖版节日海报。
+
+### 朋友圈
+
+- **标题：** 国庆相聚，来西湖边吃顿好饭
+- **正文：** 国庆假期，难得和家人朋友坐下来好好吃顿饭。杭州西湖店已准备好清爽轻食与精致中餐，无论是假日午餐、朋友小聚还是家庭聚餐，都能轻松安排。祝大家国庆快乐，山河锦绣，团聚有味。
+- **行动引导：** 提前预订国庆聚餐
+
+### 小红书
+
+- **标题：** 国庆来杭州，西湖边这顿聚餐可以安排
+- **正文：** 国庆逛完西湖，想找一家环境舒服、适合多人聚餐的店，可以把杭州西湖店加入行程。菜品兼顾清爽和体面，家庭聚餐、朋友小聚都合适，拍照氛围也很在线。假期热门时段建议提前预订。
+- **行动引导：** 收藏这家西湖边聚餐店
+
+### 海报图片
+
+按 3:4 竖版生成，以国庆红、餐桌团聚和西湖假日氛围为主视觉，适合朋友圈和小红书信息流展示。
+
+![国庆节聚餐文案海报](campaign-national-day-poster-3x4.jpg?v=20261003-2)`,
+    },
+    findings: [
+      {
+        tone: 'info',
+        label: '朋友圈',
+        meta: '节前预热',
+        title: '节日祝福与聚餐理由放在同一条内容里',
+        body: '先表达国庆祝福，再自然带出家庭聚餐和朋友小聚场景，内容更适合熟客阅读和转发。',
+      },
+      {
+        tone: 'opportunity',
+        label: '小红书',
+        meta: '假期搜索',
+        title: '用“西湖周边聚餐”承接游客主动搜索',
+        body: '标题保留城市、地点和聚餐关键词，正文强调环境、多人场景和提前预订，方便用户收藏决策。',
+      },
+    ],
+    nextActions: ['分享到朋友圈', '分享到小红书', '调整国庆海报文案'],
+    context: {
+      updatedAt: '刚刚',
+      permissions: [
+        ['可读取', '门店定位、菜品特色、历史高转化素材'],
+        ['可生成', '朋友圈文案、小红书笔记、节日海报'],
+        ['需批准', '正式发布到外部平台'],
+      ],
+      references: [
+        ['国庆内容模板', '节日祝福、聚餐场景、到店引导', PenLine],
+        ['门店品牌素材', '杭州西湖店、菜品与环境图片', ImageIcon],
+      ],
+    },
+  },
   {
     id: 'operation-sync',
     kind: '操作类',
@@ -915,6 +1084,32 @@ const historySessions: HistorySession[] = [
   },
 ]
 
+const lunchReminderSession: HistorySession = {
+  id: 'history-lunch-reminder-plan',
+  title: '午餐券到期提醒方案',
+  scenarioId: 'lunch-reminder-plan',
+  prompt: '为已经领取午餐券但还没有核销的会员，生成一份提醒方案。',
+  time: '刚刚',
+  summary: '已筛选 42 人，提醒方案待确认',
+}
+
+const memberRecallSession = historySessions[0]
+
+const nationalDayCopySession: HistorySession = {
+  id: 'history-national-day-copy',
+  title: '国庆节朋友圈小红书文案',
+  scenarioId: 'national-day-copy',
+  prompt: '国庆节到了，帮我生成一组适合朋友圈和小红书发布的节日文案，再给我一张适合转发的 3:4 竖版海报。',
+  time: '刚刚',
+  summary: '已生成朋友圈、小红书文案和节日海报',
+}
+
+const generatedAssistantSessions: Record<string, HistorySession> = {
+  'lunch-redemption': lunchReminderSession,
+  'member-sleeping': memberRecallSession,
+  'national-day-copy': nationalDayCopySession,
+}
+
 const guidedSessionKeywords: Record<string, string[]> = {
   'marketing-page': ['工作日', '午餐', '领券', '活动'],
   'copy-platform': ['文案', '朋友圈', '小红书', '抖音', '海报'],
@@ -1088,8 +1283,383 @@ function StatusBadge({ value }: { value: string }) {
   return <span className={`syt-status-badge ${statusToneMap[value] ?? 'neutral'}`}>{value}</span>
 }
 
-function CouponCenterPage() {
+type AiBusinessInsight = {
+  id: string
+  tone: 'critical' | 'warning' | 'opportunity'
+  category: string
+  title: string
+  summary: string
+  impact: string
+  evidence: string[]
+  recommendation: string
+  actionLabel: string
+  route: string
+  routeLabel: string
+  Icon: LucideIcon
+}
+
+const aiBusinessInsights: AiBusinessInsight[] = [
+  {
+    id: 'lunch-redemption',
+    tone: 'critical',
+    category: '经营异常',
+    title: '午餐券有 81 人领取后尚未核销',
+    summary: '工作日午餐券已领取 128 人、核销 47 人；81 名未核销用户中有 42 人符合提醒条件。',
+    impact: '预计可新增核销 12–18 单，带动 GMV ¥780–¥1,200',
+    evidence: ['已领券 128 人', '已核销 47 人', '符合提醒条件 42 人'],
+    recommendation: '今天 10:30 向高意向的已领未核销会员发送到期提醒，短信注明券名称、满减金额、适用时段和到期日期。',
+    actionLabel: '生成提醒方案',
+    route: '#/coupon-center/claims?filter=reminder',
+    routeLabel: '查看领券用户',
+    Icon: TicketPercent,
+  },
+  {
+    id: 'member-sleeping',
+    tone: 'warning',
+    category: '会员机会',
+    title: '186 名高复购会员正在进入沉睡期',
+    summary: '这批会员过去常在工作日午餐消费，但最近 30 天没有到店。',
+    impact: '预计可召回 22–31 人，带动 GMV ¥1,800–¥2,600',
+    evidence: ['目标会员 186 人', '历史月均消费 2.7 次', '午餐偏好占比 72%'],
+    recommendation: '建议创建工作日午餐活动，发放满 39 减 8 元券，并限制工作日午餐时段使用。',
+    actionLabel: '生成召回方案',
+    route: '#/coupon-center/members',
+    routeLabel: '查看目标会员',
+    Icon: Users,
+  },
+  {
+    id: 'national-day-copy',
+    tone: 'opportunity',
+    category: '节日营销',
+    title: '国庆节到了，可以提前发布节日内容',
+    summary: '国庆期间出游、家庭聚餐和朋友小聚需求增加，适合提前在朋友圈和小红书进行内容预热。',
+    impact: '提前完成节日内容准备，承接国庆期间的到店关注和聚餐需求',
+    evidence: ['国庆假期临近', '家庭聚餐与朋友小聚需求增加', '朋友圈和小红书适合提前预热'],
+    recommendation: '建议生成一组国庆节朋友圈和小红书文案，并配套一张 3:4 节日海报，用于假期前预热。',
+    actionLabel: '生成国庆文案',
+    route: '#',
+    routeLabel: '查看已有文案',
+    Icon: PenLine,
+  },
+]
+
+function AiHomeBrief({ insights, onOpenInsight }: { insights: AiBusinessInsight[]; onOpenInsight: (id: string) => void }) {
+  return (
+    <section className="ai-home-brief" aria-label="AI 今日经营简报">
+      <div className="ai-home-brief-head">
+        <div>
+          <span><Sparkles size={14} />小意经营简报 · 今日 09:30</span>
+          <h2>有 {insights.length} 件事值得你关注</h2>
+          <p>已分析近 30 天订单、会员、优惠券和支付数据，并按经营影响排序。</p>
+        </div>
+        <button type="button" onClick={() => onOpenInsight(insights[0].id)}>查看全部建议</button>
+      </div>
+      <div className="ai-home-insight-grid">
+        {insights.map((insight) => {
+          const Icon = insight.Icon
+          return (
+            <button
+              className={`ai-home-insight ${insight.tone}`}
+              type="button"
+              key={insight.id}
+              onClick={() => onOpenInsight(insight.id)}
+            >
+              <span className="ai-home-insight-icon"><Icon size={17} /></span>
+              <span className="ai-home-insight-copy">
+                <small>{insight.category}</small>
+                <strong>{insight.title}</strong>
+                <em>{insight.impact}</em>
+              </span>
+              <span className="ai-home-insight-action">查看建议</span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function AiBusinessAssistant({
+  open,
+  onOpenChange,
+  minimized,
+  onMinimizedChange,
+  allRead,
+  onMarkAllRead,
+  insights,
+  onInsightHandled,
+  selectedInsightId,
+  onSelectInsight,
+  pageContext,
+  onConversationGenerated,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  minimized: boolean
+  onMinimizedChange: (minimized: boolean) => void
+  allRead: boolean
+  onMarkAllRead: () => void
+  insights: AiBusinessInsight[]
+  onInsightHandled: (insight: AiBusinessInsight) => void
+  selectedInsightId: string
+  onSelectInsight: (id: string) => void
+  pageContext: string
+  onConversationGenerated?: (insight: AiBusinessInsight) => void
+}) {
+  const [showNudge, setShowNudge] = useState(() => {
+    try {
+      return window.sessionStorage.getItem('shengyitong:ai-business-nudge-seen') !== 'true'
+    } catch {
+      return true
+    }
+  })
+  const [actionStates, setActionStates] = useState<Record<string, 'ready' | 'running' | 'done'>>({})
+  const selectedInsight = insights.find((item) => item.id === selectedInsightId) ?? insights[0] ?? aiBusinessInsights[0]
+  const actionState = actionStates[selectedInsight.id] ?? 'ready'
+  const unreadCount = allRead ? 0 : insights.length
+  const issueCount = insights.filter((insight) => insight.tone !== 'opportunity').length
+  const opportunityCount = insights.length - issueCount
+  const summaryParts = [issueCount ? `${issueCount} 个经营问题` : '', opportunityCount ? `${opportunityCount} 个增长机会` : ''].filter(Boolean)
+
+  useEffect(() => {
+    if (open && minimized) onMinimizedChange(false)
+  }, [minimized, onMinimizedChange, open])
+
+  useEffect(() => {
+    if (insights.length && !insights.some((insight) => insight.id === selectedInsightId)) {
+      onSelectInsight(insights[0].id)
+    }
+  }, [insights, onSelectInsight, selectedInsightId])
+
+  useEffect(() => {
+    if (!showNudge) return
+    const timer = window.setTimeout(() => {
+      setShowNudge(false)
+      try {
+        window.sessionStorage.setItem('shengyitong:ai-business-nudge-seen', 'true')
+      } catch {
+        // Session storage can be unavailable in privacy-restricted browser contexts.
+      }
+    }, 9000)
+    return () => window.clearTimeout(timer)
+  }, [showNudge])
+
+  const openAssistant = (id = selectedInsight.id) => {
+    onSelectInsight(id)
+    onMinimizedChange(false)
+    onOpenChange(true)
+    setShowNudge(false)
+    try {
+      window.sessionStorage.setItem('shengyitong:ai-business-nudge-seen', 'true')
+    } catch {
+      // Session storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  const dismissNudge = () => {
+    setShowNudge(false)
+    try {
+      window.sessionStorage.setItem('shengyitong:ai-business-nudge-seen', 'true')
+    } catch {
+      // Session storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  const minimizeAssistant = () => {
+    setShowNudge(false)
+    onOpenChange(false)
+    onMinimizedChange(true)
+    try {
+      window.sessionStorage.setItem('shengyitong:ai-business-nudge-seen', 'true')
+    } catch {
+      // Session storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  const markAllRead = () => {
+    setShowNudge(false)
+    onMarkAllRead()
+    try {
+      window.sessionStorage.setItem('shengyitong:ai-business-nudge-seen', 'true')
+    } catch {
+      // Session storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  const runAiAction = () => {
+    const insight = selectedInsight
+    setActionStates((current) => ({ ...current, [selectedInsight.id]: 'running' }))
+    window.setTimeout(() => {
+      setActionStates((current) => ({ ...current, [insight.id]: 'done' }))
+      onInsightHandled(insight)
+      onConversationGenerated?.(insight)
+    }, 1600)
+  }
+
+  return (
+    <>
+      {open && <button className="ai-assistant-backdrop" type="button" aria-label="关闭小意" onClick={() => onOpenChange(false)} />}
+      <aside className={`ai-business-drawer ${open ? 'open' : ''}`} aria-hidden={!open}>
+        <header>
+          <div className="ai-business-brand">
+            <span><img src={assetUrl('shengyitong-chat-robot.png')} alt="" /></span>
+            <div><strong>小意</strong><small><i />你的 AI 经营助手 · 正在关注{pageContext}</small></div>
+          </div>
+          <div className="ai-business-header-actions">
+            {!allRead && !!insights.length && <button className="ai-business-read-all" type="button" onClick={markAllRead}><Check size={13} />全部标为已读</button>}
+            <button className="ai-business-close" type="button" aria-label="关闭小意" onClick={() => onOpenChange(false)}><X size={18} /></button>
+          </div>
+        </header>
+
+        <div className="ai-business-drawer-body">
+          {allRead || !insights.length ? (
+            <div className="ai-business-empty">
+              <span><Check size={21} /></span>
+              <strong>所有建议都已读</strong>
+              <small>暂时没有新的经营建议，有值得处理的问题时小意会再次提醒你。</small>
+            </div>
+          ) : (
+            <>
+              <div className="ai-business-summary">
+                <span>今日发现</span>
+                <strong>{summaryParts.join('，')}</strong>
+                <small>仅在问题值得处理时提醒你</small>
+              </div>
+
+              <div className="ai-business-insight-tabs" role="list" aria-label="经营问题">
+                {insights.map((insight) => {
+                  const Icon = insight.Icon
+                  return (
+                    <button
+                      className={`${insight.tone} ${insight.id === selectedInsight.id ? 'active' : ''}`}
+                      type="button"
+                      key={insight.id}
+                      onClick={() => onSelectInsight(insight.id)}
+                    >
+                      <span><Icon size={15} /></span>
+                      <div><small>{insight.category}</small><strong>{insight.title}</strong></div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <section className={`ai-business-detail ${selectedInsight.tone}`}>
+                <span className="ai-business-detail-label">{selectedInsight.category}</span>
+                <h2>{selectedInsight.title}</h2>
+                <p>{selectedInsight.summary}</p>
+
+                <div className="ai-business-impact">
+                  <CircleDollarSign size={17} />
+                  <div><span>预计经营影响</span><strong>{selectedInsight.impact}</strong></div>
+                </div>
+
+                <div className="ai-business-evidence">
+                  <strong>判断依据</strong>
+                  <div>{selectedInsight.evidence.map((item) => <span key={item}>{item}</span>)}</div>
+                </div>
+
+                <div className="ai-business-recommendation">
+                  <span><WandSparkles size={15} />小意建议</span>
+                  <p>{selectedInsight.recommendation}</p>
+                </div>
+
+                {actionState !== 'ready' && (
+                  <div className={`ai-business-execution ${actionState}`} role="status">
+                    {actionState === 'running' ? <LoaderCircle size={16} /> : <Check size={16} />}
+                    <div>
+                      <strong>{actionState === 'running' ? 'AI 正在生成执行方案' : '执行方案已生成'}</strong>
+                      <small>{actionState === 'running' ? '正在匹配目标用户、营销规则和触达内容…' : '已完成对象筛选和内容生成，等待你确认发布。'}</small>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+
+        {!allRead && !!insights.length && <footer>
+          <button type="button" className="ai-business-secondary" onClick={() => {
+            onOpenChange(false)
+            window.location.hash = selectedInsight.route
+          }}>
+            <Eye size={15} />{selectedInsight.routeLabel}
+          </button>
+          <button type="button" className="ai-business-primary" disabled={actionState === 'running'} onClick={runAiAction}>
+            {actionState === 'running' ? <LoaderCircle size={15} /> : actionState === 'done' ? <Check size={15} /> : <Sparkles size={15} />}
+            {actionState === 'ready' ? selectedInsight.actionLabel : actionState === 'running' ? '正在生成' : '方案待确认'}
+          </button>
+        </footer>}
+      </aside>
+
+      {!!unreadCount && !open && !minimized && showNudge && (
+        <div className="ai-business-nudge" role="status">
+          <button type="button" aria-label="关闭提醒" onClick={dismissNudge}><X size={14} /></button>
+          <span>小意发现一个经营问题</span>
+          <strong>{insights[0].title}</strong>
+          <small>{insights[0].impact}</small>
+          <button type="button" onClick={() => openAssistant(insights[0].id)}>查看分析</button>
+        </div>
+      )}
+
+      {!open && !minimized && (
+        <div className="ai-business-fab-shell">
+          <button
+            className="ai-business-fab-hide"
+            type="button"
+            aria-label="将小意隐藏到顶部"
+            title="隐藏到顶部"
+            onClick={minimizeAssistant}
+          >
+            <X size={12} />
+          </button>
+          <button
+            className="ai-business-fab"
+            type="button"
+            aria-label={unreadCount ? `打开小意，有 ${unreadCount} 条经营建议` : '打开小意'}
+            title="小意"
+            onClick={() => openAssistant()}
+          >
+            <img src={assetUrl('shengyitong-chat-robot.png')} alt="" />
+            {!!unreadCount && <b>{unreadCount}</b>}
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+function AiAssistantDockButton({ onClick, unreadCount, className = '' }: { onClick: () => void; unreadCount: number; className?: string }) {
+  return (
+    <button
+      className={`icon-btn ai-header-dock ${className}`.trim()}
+      type="button"
+      aria-label={unreadCount ? `打开小意，有 ${unreadCount} 条经营建议` : '打开小意'}
+      title="打开小意"
+      onClick={onClick}
+    >
+      <img src={assetUrl('shengyitong-chat-robot.png')} alt="" />
+      {!!unreadCount && <b>{unreadCount}</b>}
+    </button>
+  )
+}
+
+function CouponCenterPage({
+  onOpenGeneratedConversation,
+  assistantAllRead,
+  onMarkAllAssistantRead,
+  assistantInsights,
+  onAssistantInsightHandled,
+}: {
+  onOpenGeneratedConversation: (insight: AiBusinessInsight) => void
+  assistantAllRead: boolean
+  onMarkAllAssistantRead: () => void
+  assistantInsights: AiBusinessInsight[]
+  onAssistantInsightHandled: (insight: AiBusinessInsight) => void
+}) {
   const [routeHash, setRouteHash] = useState(() => window.location.hash)
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [assistantMinimized, setAssistantMinimized] = useState(getInitialAiAssistantMinimized)
+  const [assistantInsightId, setAssistantInsightId] = useState(aiBusinessInsights[0].id)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem('shengyitong:coupon-sidebar-collapsed') === 'true'
@@ -1111,6 +1681,8 @@ function CouponCenterPage() {
   const isClaimRecordsPage = routeHash.startsWith('#/coupon-center/claims')
   const isRedemptionPage = routeHash.startsWith('#/coupon-center/redemptions')
   const isUsageReportPage = routeHash.startsWith('#/coupon-center/reports')
+  const routeQuery = new URLSearchParams(routeHash.split('?')[1] ?? '')
+  const isReminderClaimsView = isClaimRecordsPage && routeQuery.get('filter') === 'reminder'
   const isSubPage = isStockPage || isCampaignManagePage || isMemberPage || isClaimRecordsPage || isRedemptionPage || isUsageReportPage
   const pageTitle = isCampaignManagePage
     ? '活动管理'
@@ -1144,6 +1716,16 @@ function CouponCenterPage() {
     setRouteHash(href)
   }
 
+  const updateAssistantMinimized = (minimized: boolean) => {
+    setAssistantMinimized(minimized)
+    persistAiAssistantMinimized(minimized)
+  }
+
+  const restoreAssistant = () => {
+    updateAssistantMinimized(false)
+    setAssistantOpen(true)
+  }
+
   useEffect(() => {
     const syncHash = () => setRouteHash(window.location.hash)
     window.addEventListener('hashchange', syncHash)
@@ -1173,9 +1755,9 @@ function CouponCenterPage() {
   ]
 
   const channelRows = [
-    ['微信群', '210', '86', '34', '39.5%'],
-    ['朋友圈', '156', '42', '13', '31.0%'],
-    ['门店二维码', '88', '31', '16', '51.6%'],
+    ['微信群', '210', '86', '32', '37.2%'],
+    ['朋友圈', '88', '11', '5', '45.5%'],
+    ['门店二维码', '88', '31', '10', '32.3%'],
     ['店员私聊', '64', '22', '9', '40.9%'],
   ]
 
@@ -1187,25 +1769,58 @@ function CouponCenterPage() {
     ['10:06', '微信商家券批次同步成功'],
   ]
 
-  const claimRecords = [
-    ['12:08', '138****5821', '周女士', '工作日午餐轻食券', 'WXCP-240918-1288', '微信群', '已领取', '2026.09.30'],
-    ['11:54', '186****9012', '陈先生', '工作日午餐轻食券', 'WXCP-240918-1287', '门店二维码', '已核销', '2026.09.30'],
-    ['11:32', '159****6703', '赵女士', '老客复购券', 'WXCP-240916-0641', '店员私聊', '已领取', '2026.10.15'],
-    ['10:46', '177****3319', '李先生', '新客尝鲜券', 'WXCP-240912-0092', '朋友圈', '即将结束', '2026.09.27'],
+  const claimMemberSeeds = [
+    ['138****5821', '周女士'],
+    ['186****9012', '陈先生'],
+    ['159****6703', '赵女士'],
+    ['133****2286', '吴女士'],
+    ['177****3319', '李先生'],
+    ['136****4276', '孙女士'],
+    ['188****7846', '王先生'],
   ]
-
-  const redemptionRecords = [
-    ['12:16', 'PAY-20260918-0917', '138****5821', '工作日午餐轻食券', '¥42', '¥8', '¥34', '微信支付', '核销成功'],
-    ['12:02', 'PAY-20260918-0908', '186****9012', '工作日午餐轻食券', '¥39', '¥8', '¥31', '微信支付', '核销成功'],
-    ['11:47', 'PAY-20260918-0881', '159****6703', '老客复购券', '¥68', '¥10', '¥58', '微信支付', '核销成功'],
-    ['11:21', 'PAY-20260918-0842', '177****3319', '新客尝鲜券', '¥31', '¥0', '¥31', '未使用券', '待复核'],
-  ]
+  const claimSurnames = ['钱', '冯', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '许', '何', '吕', '施']
+  const claimChannels = ['微信群', '门店二维码', '朋友圈']
+  const claimRecords = Array.from({ length: 128 }, (_, index) => {
+    const seededMember = claimMemberSeeds[index]
+    const phone = seededMember?.[0] ?? `13${(index % 8) + 1}****${String(5900 + index).slice(-4)}`
+    const customer = seededMember?.[1] ?? `${claimSurnames[index % claimSurnames.length]}${index % 2 === 0 ? '女士' : '先生'}`
+    const status = index < 63 ? '已领取' : index < 81 ? '即将结束' : '已核销'
+    const day = 18 - Math.floor(index / 24)
+    const hour = 12 - Math.floor((index % 24) / 6)
+    const minute = 58 - ((index * 7) % 56)
+    return [
+      `09.${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      phone,
+      customer,
+      '工作日午餐轻食券',
+      `WXCP-240918-${String(1288 - index).padStart(4, '0')}`,
+      claimChannels[index % claimChannels.length],
+      status,
+      '2026.09.30',
+    ]
+  })
+  const redemptionRecords = claimRecords
+    .filter((record) => record[6] === '已核销')
+    .map((record, index) => {
+      return [
+        record[0],
+        `PAY-20260918-${String(900 + index).padStart(4, '0')}`,
+        record[1],
+        record[3],
+        '¥42',
+        '¥8',
+        '¥34',
+        '微信支付',
+        '核销成功',
+      ]
+    })
 
   type UsageReportRow = [string, string, string, string, string, string, string, string]
 
   const usageReportRows: UsageReportRow[] = [
-    ['工作日午餐轻食券', '微信群', '210', '86', '34', '39.5%', '¥1,428', '¥272'],
-    ['工作日午餐轻食券', '门店二维码', '88', '31', '16', '51.6%', '¥672', '¥128'],
+    ['工作日午餐轻食券', '微信群', '210', '86', '32', '37.2%', '¥1,344', '¥256'],
+    ['工作日午餐轻食券', '门店二维码', '88', '31', '10', '32.3%', '¥420', '¥80'],
+    ['工作日午餐轻食券', '朋友圈', '88', '11', '5', '45.5%', '¥210', '¥40'],
     ['老客复购券', '店员私聊', '64', '22', '9', '40.9%', '¥612', '¥90'],
     ['新客尝鲜券', '朋友圈', '156', '42', '13', '31.0%', '¥403', '¥65'],
   ]
@@ -1497,6 +2112,7 @@ function CouponCenterPage() {
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'draft' | 'published'>('all')
   const [campaignStatusFilter, setCampaignStatusFilter] = useState<'all' | '草稿' | '进行中' | '已暂停' | '已结束'>('all')
   const [selectedMemberPhone, setSelectedMemberPhone] = useState<string | null>(null)
+  const [claimRecordPage, setClaimRecordPage] = useState(1)
   const [memberLevel, setMemberLevel] = useState('all')
   const [memberLifecycle, setMemberLifecycle] = useState('all')
   const [memberSearch, setMemberSearch] = useState('')
@@ -1508,12 +2124,32 @@ function CouponCenterPage() {
   const [memberSmsLink, setMemberSmsLink] = useState('https://roydeen.github.io/shengyitong-demo/#/campaigns/spring-salad?utm_source=sms')
   const [memberSmsShortLink, setMemberSmsShortLink] = useState('https://syt.link/L39A8')
   const [memberSmsNotice, setMemberSmsNotice] = useState('')
+  const [claimCouponFilter, setClaimCouponFilter] = useState(isReminderClaimsView ? 'lunch' : 'all')
+  const [claimStatusFilter, setClaimStatusFilter] = useState(isReminderClaimsView ? '已领取' : 'all')
   const [reportRange, setReportRange] = useState<'7d' | '30d' | 'custom'>('7d')
   const [reportChannel, setReportChannel] = useState('all')
   const [customReportStart, setCustomReportStart] = useState('2026-09-15')
   const [customReportEnd, setCustomReportEnd] = useState('2026-09-29')
   const [appliedCustomReportRange, setAppliedCustomReportRange] = useState({ start: '2026-09-15', end: '2026-09-29' })
   const [reportDateError, setReportDateError] = useState('')
+  const claimRows = claimRecords.filter((record) => {
+    const matchesCoupon = claimCouponFilter === 'all' || (claimCouponFilter === 'lunch' && record[3] === '工作日午餐轻食券')
+    const matchesStatus = claimStatusFilter === 'all' || record[6] === claimStatusFilter
+    return matchesCoupon && matchesStatus
+  })
+  const claimPageSize = 10
+  const claimPageCount = Math.max(1, Math.ceil(claimRows.length / claimPageSize))
+  const pagedClaimRows = claimRows.slice((claimRecordPage - 1) * claimPageSize, claimRecordPage * claimPageSize)
+
+  useEffect(() => {
+    setClaimCouponFilter(isReminderClaimsView ? 'lunch' : 'all')
+    setClaimStatusFilter(isReminderClaimsView ? '已领取' : 'all')
+  }, [isReminderClaimsView])
+
+  useEffect(() => {
+    setClaimRecordPage(1)
+  }, [claimCouponFilter, claimStatusFilter])
+
   const selectedCampaign = detailCampaignId ? campaigns.find((campaign) => campaign.id === detailCampaignId) : undefined
   const selectedCampaignReturnRatio = selectedCampaign && parseReportMoney(selectedCampaign.cost)
     ? parseReportMoney(selectedCampaign.gmv) / parseReportMoney(selectedCampaign.cost)
@@ -1876,6 +2512,12 @@ function CouponCenterPage() {
             )}
             <p>{pageDescription}</p>
           </div>
+          <div className="coupon-admin-header-tools">
+            <button className="icon-btn coupon-header-notification" type="button" title="通知" aria-label="通知">
+              <Bell size={18} />
+            </button>
+            {assistantMinimized && <AiAssistantDockButton unreadCount={assistantInsights.length} onClick={restoreAssistant} />}
+          </div>
         </header>
 
         {isMemberPage ? (
@@ -2005,7 +2647,7 @@ function CouponCenterPage() {
               {[
                 ['今日领取', '128', '微信卡包入账成功'],
                 ['已核销', '47', '领取后核销率 36.7%'],
-                ['未核销', '81', '建议午高峰后提醒'],
+                ['未核销', '81', '其中 42 人符合提醒条件'],
                 ['即将过期', '18', '48 小时内到期'],
               ].map(([label, value, note]) => (
                 <div key={label}>
@@ -2023,17 +2665,19 @@ function CouponCenterPage() {
                 </div>
               </div>
               <div className="coupon-feature-filters">
-                <label><span>券批次</span><select defaultValue="all"><option value="all">全部券批次</option><option>工作日午餐轻食券</option><option>老客复购券</option><option>新客尝鲜券</option></select></label>
-                <label><span>状态</span><select defaultValue="all"><option value="all">全部状态</option><option>已领取</option><option>已核销</option><option>即将结束</option></select></label>
+                <label><span>券批次</span><select value={claimCouponFilter} onChange={(event) => setClaimCouponFilter(event.target.value)}><option value="all">全部券批次</option><option value="lunch">工作日午餐</option><option value="repeat">老客复购券</option><option value="new">新客尝鲜券</option></select></label>
+                <label><span>状态</span><select value={claimStatusFilter} onChange={(event) => setClaimStatusFilter(event.target.value)}><option value="all">全部状态</option><option>已领取</option><option>已核销</option><option>即将结束</option></select></label>
                 <label className="wide"><span>搜索</span><input placeholder="手机号 / 顾客 / 券码" /></label>
                 <button className="coupon-filter-submit" type="button">查询</button>
               </div>
               <div className="coupon-record-table claims">
                 <div><span>领取时间</span><span>手机号</span><span>顾客</span><span>券名称</span><span>券码</span><span>来源渠道</span><span>状态</span><span>有效期至</span></div>
-                {claimRecords.map(([time, phone, customer, coupon, code, channel, status, expire]) => (
+                {pagedClaimRows.map(([time, phone, customer, coupon, code, channel, status, expire]) => (
                   <div key={code}>
                     <span>{time}</span>
-                    <span><button className="member-phone-link" type="button" onClick={() => setSelectedMemberPhone(phone)}>{phone}</button></span>
+                    <span>{memberProfiles.some((member) => member.phone === phone)
+                      ? <button className="member-phone-link" type="button" onClick={() => setSelectedMemberPhone(phone)}>{phone}</button>
+                      : phone}</span>
                     <span>{customer}</span>
                     <span>{coupon}</span>
                     <span>{code}</span>
@@ -2042,6 +2686,13 @@ function CouponCenterPage() {
                     <span>{expire}</span>
                   </div>
                 ))}
+              </div>
+              <div className="coupon-record-pagination">
+                <span>共 {claimRows.length} 人 · 第 {claimRecordPage} / {claimPageCount} 页</span>
+                <div>
+                  <button type="button" disabled={claimRecordPage === 1} onClick={() => setClaimRecordPage((page) => Math.max(1, page - 1))}>上一页</button>
+                  <button type="button" disabled={claimRecordPage === claimPageCount} onClick={() => setClaimRecordPage((page) => Math.min(claimPageCount, page + 1))}>下一页</button>
+                </div>
               </div>
             </article>
           </section>
@@ -2052,7 +2703,7 @@ function CouponCenterPage() {
                 ['核销订单', '47', '微信支付自动抵扣'],
                 ['带动 GMV', '¥1,974', '实收 ¥1,598'],
                 ['优惠成本', '¥376', '微信商家券抵扣'],
-                ['待复核订单', '1', '券未匹配或回调延迟'],
+                ['平均客单价', '¥42', '47 笔核销订单'],
               ].map(([label, value, note]) => (
                 <div key={label}>
                   <span>{label}</span>
@@ -2197,7 +2848,7 @@ function CouponCenterPage() {
                 <div className="coupon-report-module-head"><div><h2>渠道表现</h2><small>按核销率排序，识别高质量入口</small></div></div>
                 <div className="coupon-channel-performance">
                   {reportChannelRows.map(({ row, rate }, index) => (
-                    <div key={row[1]}>
+                    <div key={`${row[0]}-${row[1]}`}>
                       <strong>{row[1]}</strong><span>{Number(row[2]).toLocaleString('zh-CN')} 访问</span><span>{Number(row[3]).toLocaleString('zh-CN')} 领券</span>
                       <div><i style={{ width: `${Math.max(18, 92 - index * 13)}%` }} /></div><b>{rate.toFixed(1)}%</b>
                     </div>
@@ -2880,6 +3531,20 @@ function CouponCenterPage() {
           </form>
         </div>
       )}
+      <AiBusinessAssistant
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+        minimized={assistantMinimized}
+        onMinimizedChange={updateAssistantMinimized}
+        allRead={assistantAllRead}
+        onMarkAllRead={onMarkAllAssistantRead}
+        insights={assistantInsights}
+        onInsightHandled={onAssistantInsightHandled}
+        selectedInsightId={assistantInsightId}
+        onSelectInsight={setAssistantInsightId}
+        pageContext={pageTitle}
+        onConversationGenerated={onOpenGeneratedConversation}
+      />
       {memberSmsNotice && <div className="toast member-sms-toast" role="status">{memberSmsNotice}</div>}
     </div>
   )
@@ -3415,6 +4080,11 @@ export default function App() {
   const [activeId, setActiveId] = useState('marketing-page')
   const [prompt, setPrompt] = useState('')
   const [rightOpen, setRightOpen] = useState(() => !window.matchMedia('(max-width: 760px)').matches)
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [assistantMinimized, setAssistantMinimized] = useState(getInitialAiAssistantMinimized)
+  const [assistantAllRead, setAssistantAllRead] = useState(false)
+  const [handledAssistantInsightIds, setHandledAssistantInsightIds] = useState<string[]>([])
+  const [assistantInsightId, setAssistantInsightId] = useState(aiBusinessInsights[0].id)
   const [leftOpen, setLeftOpen] = useState(false)
   const [appRouteHash, setAppRouteHash] = useState(() => window.location.hash)
   const [customPrompt, setCustomPrompt] = useState('')
@@ -3429,7 +4099,13 @@ export default function App() {
   const [reportPinned, setReportPinned] = useState(isReportPinned)
   const [copyShareTargetId, setCopyShareTargetId] = useState<CopyShareTargetId | null>(null)
   const composerInputRef = useRef<HTMLTextAreaElement>(null)
+  const threadRef = useRef<HTMLElement>(null)
+  const pendingGeneratedConversationScrollRef = useRef(false)
   const hideCommonFeatures = true
+  const availableAssistantInsights = assistantAllRead
+    ? []
+    : aiBusinessInsights.filter((insight) => !handledAssistantInsightIds.includes(insight.id))
+  const assistantUnreadCount = availableAssistantInsights.length
 
   useEffect(() => {
     const syncRouteHash = () => setAppRouteHash(window.location.hash)
@@ -3455,8 +4131,20 @@ export default function App() {
     () => scenarios.find((scenario) => scenario.id === reportScenarioId) ?? scenarios[0],
     [],
   )
-  const copyShareTarget = copyShareTargets.find((target) => target.id === copyShareTargetId)
+  const activeCopyShareTargets = activeScenario.id === 'national-day-copy' ? nationalDayShareTargets : copyShareTargets
+  const copyShareTarget = activeCopyShareTargets.find((target) => target.id === copyShareTargetId)
   const sentPrompt = customPrompt || (activeHistoryId === null ? '' : activeScenario.question)
+
+  useEffect(() => {
+    if (!pendingGeneratedConversationScrollRef.current || !sentPrompt) return
+    pendingGeneratedConversationScrollRef.current = false
+    const frame = window.requestAnimationFrame(() => {
+      const thread = threadRef.current
+      if (thread) thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeScenario.id, sentPrompt])
+
   const commonScenarios = useMemo(
     () => scenarios
       .filter((scenario) => scenario.id !== reportScenarioId)
@@ -3626,10 +4314,69 @@ export default function App() {
     setPrompt('')
   }
 
+  const openGeneratedAssistantConversation = (insight: AiBusinessInsight) => {
+    const generatedSession = generatedAssistantSessions[insight.id]
+    if (!generatedSession) return
+    pendingGeneratedConversationScrollRef.current = true
+    setSessionHistory((sessions) => [
+      generatedSession,
+      ...sessions.filter((session) => session.id !== generatedSession.id),
+    ])
+    setActiveId(generatedSession.scenarioId)
+    setCustomPrompt(generatedSession.prompt)
+    setActiveHistoryId(generatedSession.id)
+    setGuideFallbackPrompt('')
+    setPendingGuideId(null)
+    setApproved(false)
+    setAssistantOpen(false)
+    setLeftOpen(false)
+    setPrompt('')
+    if (window.location.hash) window.location.hash = ''
+    notify(`${generatedSession.title}已生成，并加入会话`)
+  }
+
+  const updateAssistantMinimized = (minimized: boolean) => {
+    setAssistantMinimized(minimized)
+    persistAiAssistantMinimized(minimized)
+  }
+
+  const restoreAssistant = () => {
+    updateAssistantMinimized(false)
+    setAssistantOpen(true)
+  }
+
+  const markAllAssistantRead = () => {
+    setAssistantAllRead(true)
+  }
+
+  const handleAssistantInsight = (insight: AiBusinessInsight) => {
+    setHandledAssistantInsightIds((ids) => ids.includes(insight.id) ? ids : [...ids, insight.id])
+  }
+
   if (appRouteHash === '#/reports/channel-profit') {
     return (
       <>
         <ReportPage report={channelReport} pinned={reportPinned} onPin={pinReportToCommon} />
+        {assistantMinimized && (
+          <div className="ai-report-header-tools">
+            <button className="icon-btn" type="button" title="通知" aria-label="通知"><Bell size={18} /></button>
+            <AiAssistantDockButton unreadCount={assistantUnreadCount} onClick={restoreAssistant} />
+          </div>
+        )}
+        <AiBusinessAssistant
+          open={assistantOpen}
+          onOpenChange={setAssistantOpen}
+          minimized={assistantMinimized}
+          onMinimizedChange={updateAssistantMinimized}
+          allRead={assistantAllRead}
+          onMarkAllRead={markAllAssistantRead}
+          insights={availableAssistantInsights}
+          onInsightHandled={handleAssistantInsight}
+          selectedInsightId={assistantInsightId}
+          onSelectInsight={setAssistantInsightId}
+          pageContext="渠道利润分析"
+          onConversationGenerated={openGeneratedAssistantConversation}
+        />
         {toast && <div className="toast" role="status">{toast}</div>}
       </>
     )
@@ -3654,7 +4401,15 @@ export default function App() {
   }
 
   if (appRouteHash.startsWith('#/coupon-center')) {
-    return <CouponCenterPage />
+    return (
+      <CouponCenterPage
+        onOpenGeneratedConversation={openGeneratedAssistantConversation}
+        assistantAllRead={assistantAllRead}
+        onMarkAllAssistantRead={markAllAssistantRead}
+        assistantInsights={availableAssistantInsights}
+        onAssistantInsightHandled={handleAssistantInsight}
+      />
+    )
   }
 
   return (
@@ -3745,18 +4500,25 @@ export default function App() {
           <div>
             <button className="store-button context-store"><Store size={16} /><span>杭州西湖店</span><ChevronDown size={14} /></button>
             <button className="icon-btn" title="通知" aria-label="通知"><Bell size={18} /></button>
+            {assistantMinimized && <AiAssistantDockButton className="home-ai-header-dock" unreadCount={assistantUnreadCount} onClick={restoreAssistant} />}
             <button className="icon-btn" title={rightOpen ? '收起工作台' : '展开工作台'} aria-label={rightOpen ? '收起工作台' : '展开工作台'} onClick={() => setRightOpen(!rightOpen)}>
               {rightOpen ? <PanelRightClose size={19} /> : <PanelRightOpen size={19} />}
             </button>
           </div>
         </header>
 
-        <main className="thread">
+        <main className="thread" ref={threadRef}>
           {!sentPrompt && (
-            <div className="thread-title">
-              <div className="agent-symbol"><Sparkles size={20} /></div>
-              <div><p>你好，林店长</p><h1>今天想先处理什么？</h1></div>
-            </div>
+            <>
+              <div className="thread-title">
+                <div className="agent-symbol"><Sparkles size={20} /></div>
+                <div><p>你好，林店长</p><h1>今天想先处理什么？</h1></div>
+              </div>
+              {!!assistantUnreadCount && <AiHomeBrief insights={availableAssistantInsights} onOpenInsight={(id) => {
+                setAssistantInsightId(id)
+                setAssistantOpen(true)
+              }} />}
+            </>
           )}
 
           {sentPrompt ? (
@@ -3792,11 +4554,27 @@ export default function App() {
                 <>
                   <CreativeMarkdownAnswer output={activeScenario.creativeOutput} />
 
-                  {activeScenario.id === 'copy-platform' && (
+                  {activeScenario.id === 'lunch-reminder-plan' && (
+                    <div className={`approval reminder-plan-approval ${approved ? 'approved' : ''}`}>
+                      <div className="approval-icon">{approved ? <Check size={18} /> : <ShieldCheck size={18} />}</div>
+                      <div>
+                        <strong>{approved ? '已确认，提醒任务已进入发送队列' : '发送前需要店长确认'}</strong>
+                        <p>{approved ? '系统将在今天 10:30 向 42 名目标会员发送短信，并持续跟踪核销结果。' : 'AI 已完成目标用户、短信内容和优惠券信息配置，当前不会自动发送。'}</p>
+                      </div>
+                      <div className="approval-actions">
+                        {!approved && <button className="ghost-button" onClick={() => notify('已保留提醒方案，暂未发送')}>暂不发送</button>}
+                        <button className="primary-button" disabled={approved} onClick={() => { setApproved(true); notify('已确认，提醒短信进入发送队列') }}>
+                          {approved ? '等待发送' : '确认发送'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {(activeScenario.id === 'copy-platform' || activeScenario.id === 'national-day-copy') && (
                     <div className="copy-share-actions">
                       <strong>平台分享</strong>
                       <div>
-                        {copyShareTargets.map((target) => (
+                        {activeCopyShareTargets.map((target) => (
                           <button key={target.id} type="button" onClick={() => setCopyShareTargetId(target.id)}>
                             <Share2 size={15} />
                             {target.action}
@@ -3919,11 +4697,11 @@ export default function App() {
                 </div>
               )}
 
-              {activeScenario.id === 'copy-platform' && (
+              {(activeScenario.id === 'copy-platform' || activeScenario.id === 'national-day-copy') && (
                 <div className="copy-share-actions">
                   <strong>平台分享</strong>
                   <div>
-                    {copyShareTargets.map((target) => (
+                    {activeCopyShareTargets.map((target) => (
                       <button key={target.id} type="button" onClick={() => setCopyShareTargetId(target.id)}>
                         <Share2 size={15} />
                         {target.action}
@@ -4033,6 +4811,20 @@ export default function App() {
           </section>
         </aside>
       )}
+      <AiBusinessAssistant
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+        minimized={assistantMinimized}
+        onMinimizedChange={updateAssistantMinimized}
+        allRead={assistantAllRead}
+        onMarkAllRead={markAllAssistantRead}
+        insights={availableAssistantInsights}
+        onInsightHandled={handleAssistantInsight}
+        selectedInsightId={assistantInsightId}
+        onSelectInsight={setAssistantInsightId}
+        pageContext="AI 会话首页"
+        onConversationGenerated={openGeneratedAssistantConversation}
+      />
       {copyShareTarget && (
         <div className="qr-modal-backdrop" onClick={() => setCopyShareTargetId(null)}>
           <div className="qr-modal copy-share-modal" role="dialog" aria-modal="true" aria-label={`${copyShareTarget.action}二维码`} onClick={(event) => event.stopPropagation()}>
