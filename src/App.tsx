@@ -209,7 +209,7 @@ const copyShareTargets: CopyShareTarget[] = [
     text: '这份轻食不会只有草。鸡胸够嫩，牛油果增加饱腹感，青提茉莉清爽解腻，适合下午还要开会、不想犯困的时候。',
   },
 ]
-const nationalDayShareImageUrl = `${publicCampaignBaseUrl}campaign-national-day-poster-3x4.jpg?v=20261003-2`
+const nationalDayShareImageUrl = `${publicCampaignBaseUrl}campaign-national-day-poster-3x4.jpg?v=20261003-3`
 const nationalDayLandingPageUrl = `${publicCampaignBaseUrl}share/national-day.html?v=${campaignShareVersion}`
 const nationalDayShareTargets: CopyShareTarget[] = [
   {
@@ -415,7 +415,7 @@ const scenarios: Scenario[] = [
 
 按 3:4 竖版生成，以国庆红、餐桌团聚和西湖假日氛围为主视觉，适合朋友圈和小红书信息流展示。
 
-![国庆节聚餐文案海报](campaign-national-day-poster-3x4.jpg?v=20261003-2)`,
+![国庆节聚餐文案海报](campaign-national-day-poster-3x4.jpg?v=20261003-3)`,
     },
     findings: [
       {
@@ -3650,7 +3650,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
   const isBanquetPage = page.href.includes('weekend-banquet')
   const mobilePage = isNationalDayPage
     ? {
-      image: 'campaign-national-day-poster-3x4.jpg?v=20261003-2',
+      image: 'campaign-national-day-poster-3x4.jpg?v=20261003-3',
       imageAlt: '国庆相聚主题海报',
       kicker: '杭州西湖店 · 国庆相聚',
       title: '国庆相聚，来西湖边吃顿好饭',
@@ -3697,7 +3697,7 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
     }
   const shareUrl = getCampaignShareUrl(page.href)
   const shareImageFile = isNationalDayPage
-    ? 'campaign-national-day-poster-3x4.jpg?v=20261003-2'
+    ? 'campaign-national-day-poster-3x4.jpg?v=20261003-3'
     : isBanquetPage
       ? 'campaign-premium-banquet-share.jpg'
       : 'campaign-light-meal-share.jpg'
