@@ -1676,6 +1676,8 @@ function CouponCenterPage({
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [assistantMinimized, setAssistantMinimized] = useState(getInitialAiAssistantMinimized)
   const [assistantInsightId, setAssistantInsightId] = useState(aiBusinessInsights[0].id)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [isMobileLayout, setIsMobileLayout] = useState(() => window.matchMedia('(max-width: 760px)').matches)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem('shengyitong:coupon-sidebar-collapsed') === 'true'
@@ -1730,6 +1732,7 @@ function CouponCenterPage({
     if (!href) return
     window.location.hash = href
     setRouteHash(href)
+    setMobileSidebarOpen(false)
   }
 
   const updateAssistantMinimized = (minimized: boolean) => {
@@ -1743,9 +1746,23 @@ function CouponCenterPage({
   }
 
   useEffect(() => {
-    const syncHash = () => setRouteHash(window.location.hash)
+    const syncHash = () => {
+      setRouteHash(window.location.hash)
+      setMobileSidebarOpen(false)
+    }
     window.addEventListener('hashchange', syncHash)
     return () => window.removeEventListener('hashchange', syncHash)
+  }, [])
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 760px)')
+    const syncMobileLayout = () => {
+      setIsMobileLayout(mobileQuery.matches)
+      if (!mobileQuery.matches) setMobileSidebarOpen(false)
+    }
+    syncMobileLayout()
+    mobileQuery.addEventListener('change', syncMobileLayout)
+    return () => mobileQuery.removeEventListener('change', syncMobileLayout)
   }, [])
 
   useEffect(() => {
@@ -2459,8 +2476,8 @@ function CouponCenterPage({
     : []
 
   return (
-    <div className={`coupon-admin-page ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className="coupon-admin-sidebar">
+    <div className={`coupon-admin-page ${sidebarCollapsed && !isMobileLayout ? 'sidebar-collapsed' : ''}`}>
+      <aside className={`coupon-admin-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
         <div className="coupon-sidebar-head">
           <button
             className="coupon-admin-brand"
@@ -2476,13 +2493,22 @@ function CouponCenterPage({
             </div>
           </button>
           <button
-            className="coupon-sidebar-toggle"
+            className="coupon-sidebar-toggle coupon-sidebar-desktop-toggle"
             type="button"
             onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
             aria-label={sidebarCollapsed ? '展开左侧菜单' : '收起左侧菜单'}
             title={sidebarCollapsed ? '展开菜单' : '收起菜单'}
           >
             {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
+          <button
+            className="coupon-sidebar-toggle coupon-sidebar-mobile-close"
+            type="button"
+            onClick={() => setMobileSidebarOpen(false)}
+            aria-label="关闭菜单"
+            title="关闭菜单"
+          >
+            <X size={18} />
           </button>
         </div>
         <button
@@ -2513,9 +2539,16 @@ function CouponCenterPage({
         </nav>
       </aside>
 
+      {mobileSidebarOpen && (
+        <button className="coupon-admin-mobile-backdrop" type="button" aria-label="关闭菜单" onClick={() => setMobileSidebarOpen(false)} />
+      )}
+
       <main className="coupon-admin-main">
         <header className="coupon-admin-header">
-          <div>
+          <button className="icon-btn coupon-admin-mobile-menu" type="button" aria-label="打开菜单" onClick={() => setMobileSidebarOpen(true)}>
+            <Menu size={19} />
+          </button>
+          <div className="coupon-admin-heading">
             {isSubPage ? (
               <>
                 <button className="coupon-admin-back" type="button" onClick={() => openCouponPage('#/coupon-center')}>
@@ -4370,6 +4403,7 @@ export default function App() {
     setPendingGuideId(null)
     setApproved(false)
     setAssistantOpen(false)
+    if (window.matchMedia('(max-width: 760px)').matches) updateAssistantMinimized(true)
     setLeftOpen(false)
     setPrompt('')
     if (window.location.hash) window.location.hash = ''
@@ -4384,6 +4418,11 @@ export default function App() {
   const restoreAssistant = () => {
     updateAssistantMinimized(false)
     setAssistantOpen(true)
+  }
+
+  const handleHomeAssistantOpenChange = (open: boolean) => {
+    setAssistantOpen(open)
+    if (!open && window.matchMedia('(max-width: 760px)').matches) updateAssistantMinimized(true)
   }
 
   const openCopyShareTarget = (target: CopyShareTarget) => {
@@ -4872,7 +4911,7 @@ export default function App() {
       )}
       <AiBusinessAssistant
         open={assistantOpen}
-        onOpenChange={setAssistantOpen}
+        onOpenChange={handleHomeAssistantOpenChange}
         minimized={assistantMinimized}
         onMinimizedChange={updateAssistantMinimized}
         allRead={assistantAllRead}
