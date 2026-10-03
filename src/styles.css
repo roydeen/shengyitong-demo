@@ -279,3 +279,38 @@ html,body,#root{overflow-x:hidden}.composer-wrap,.suggestions,.suggestions butto
 .coupon-record-pagination button:hover:not(:disabled){background:#eef6ff}
 .coupon-record-pagination button:disabled{cursor:default;color:#9aabba;background:#f4f6f8;border-color:#e0e7ef}
 @media(max-width:620px){.coupon-record-pagination{align-items:flex-start;flex-direction:column}.coupon-record-pagination>div{width:100%}.coupon-record-pagination button{flex:1}}
+
+.ai-home-insight-compact-title{display:none}
+
+@media(max-width:760px){
+  .coupon-stock-table{border:0;overflow:visible;background:transparent}
+  .coupon-stock-table>div:first-child{display:none}
+  .coupon-stock-table>div:not(:first-child){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;min-width:0;margin-bottom:10px;border:1px solid #d9e5f4;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 7px 20px rgba(18,103,216,.05)}
+  .coupon-stock-table>div:not(:first-child)>span,.coupon-stock-table>div:not(:first-child)>.coupon-stock-actions{min-width:0;padding:9px 10px;border-top:1px solid #e4edf8;border-left:0;white-space:normal;overflow:visible;text-overflow:clip}
+  .coupon-stock-table>div:not(:first-child)>span::before,.coupon-stock-table>div:not(:first-child)>.coupon-stock-actions::before{content:attr(data-label);display:block;margin-bottom:5px;color:#71839d;font-size:9px;font-weight:850;line-height:1.2}
+  .coupon-stock-table>div:not(:first-child)>span:first-child{grid-column:1/-1;border-top:0;background:#f8fbff}
+  .coupon-stock-table>div:not(:first-child)>span:nth-child(odd){border-left:1px solid #e4edf8}
+  .coupon-stock-table>div:not(:first-child)>span:first-child{border-left:0}
+  .coupon-stock-table strong,.coupon-stock-table em{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
+  .coupon-stock-table .coupon-stock-actions{grid-column:1/-1;display:grid;gap:5px;background:#fbfdff}
+  .coupon-stock-table .coupon-stock-actions .campaign-action-line{display:block}
+  .coupon-stock-table .coupon-stock-actions .campaign-action-line>div{display:flex;flex-wrap:wrap;gap:6px}
+}
+
+@media(max-width:620px){
+  .ai-home-brief{margin-top:10px}
+  .ai-home-brief-head{display:flex;align-items:center;gap:8px;padding:10px 11px 9px}
+  .ai-home-brief-head>div{min-width:0;flex:1}
+  .ai-home-brief-head>div>span{font-size:9px}
+  .ai-home-brief-head h2{margin:4px 0 0;font-size:14px}
+  .ai-home-brief-head p{display:none}
+  .ai-home-brief-head>button{height:27px;margin-top:0;padding:0 8px;font-size:9px}
+  .ai-home-insight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 9px 9px}
+  .ai-home-insight{min-width:0;min-height:62px;border:1px solid #e1eaf6!important;border-radius:7px;padding:7px 6px;display:grid;grid-template-columns:20px minmax(0,1fr);gap:5px;align-content:start}
+  .ai-home-insight-icon{width:20px;height:20px;border-radius:5px}
+  .ai-home-insight-icon svg{width:13px;height:13px}
+  .ai-home-insight-copy small,.ai-home-insight-copy em,.ai-home-insight-action{display:none}
+  .ai-home-insight-copy strong{margin:0;font-size:9px;line-height:1.4}
+  .ai-home-insight-full-title{display:none}
+  .ai-home-insight-compact-title{display:block}
+}

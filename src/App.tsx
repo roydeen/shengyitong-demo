@@ -1304,6 +1304,7 @@ type AiBusinessInsight = {
   tone: 'critical' | 'warning' | 'opportunity'
   category: string
   title: string
+  compactTitle: string
   summary: string
   impact: string
   evidence: string[]
@@ -1320,6 +1321,7 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     tone: 'critical',
     category: '经营异常',
     title: '午餐券有 81 人领取后尚未核销',
+    compactTitle: '午餐券 81 人待核销',
     summary: '工作日午餐券已领取 128 人、核销 47 人；81 名未核销用户中有 42 人符合提醒条件。',
     impact: '预计可新增核销 12–18 单，带动 GMV ¥780–¥1,200',
     evidence: ['已领券 128 人', '已核销 47 人', '符合提醒条件 42 人'],
@@ -1334,6 +1336,7 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     tone: 'warning',
     category: '会员机会',
     title: '186 名高复购会员正在进入沉睡期',
+    compactTitle: '186 名高复购会员待召回',
     summary: '这批会员过去常在工作日午餐消费，但最近 30 天没有到店。',
     impact: '预计可召回 22–31 人，带动 GMV ¥1,800–¥2,600',
     evidence: ['目标会员 186 人', '历史月均消费 2.7 次', '午餐偏好占比 72%'],
@@ -1348,6 +1351,7 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     tone: 'opportunity',
     category: '节日营销',
     title: '国庆节到了，可以提前发布节日内容',
+    compactTitle: '国庆内容可提前发布',
     summary: '国庆期间出游、家庭聚餐和朋友小聚需求增加，适合提前在朋友圈和小红书进行内容预热。',
     impact: '提前完成节日内容准备，承接国庆期间的到店关注和聚餐需求',
     evidence: ['国庆假期临近', '家庭聚餐与朋友小聚需求增加', '朋友圈和小红书适合提前预热'],
@@ -1383,7 +1387,10 @@ function AiHomeBrief({ insights, onOpenInsight }: { insights: AiBusinessInsight[
               <span className="ai-home-insight-icon"><Icon size={17} /></span>
               <span className="ai-home-insight-copy">
                 <small>{insight.category}</small>
-                <strong>{insight.title}</strong>
+                <strong>
+                  <span className="ai-home-insight-full-title">{insight.title}</span>
+                  <span className="ai-home-insight-compact-title">{insight.compactTitle}</span>
+                </strong>
                 <em>{insight.impact}</em>
               </span>
               <span className="ai-home-insight-action">查看建议</span>
@@ -2191,7 +2198,50 @@ function CouponCenterPage({
   const endingCampaign = endingCampaignId ? campaigns.find((campaign) => campaign.id === endingCampaignId) : undefined
   const selectedStock = detailStockNo ? couponStocks.find((stock) => stock.localStockNo === detailStockNo) : undefined
   const endingStock = endingStockNo ? couponStocks.find((stock) => stock.localStockNo === endingStockNo) : undefined
-  const selectedMember = selectedMemberPhone ? memberProfiles.find((member) => member.phone === selectedMemberPhone) : undefined
+  const claimMemberProfiles = claimRecords.map((record, index): MemberProfile => {
+    const [time, phone, customer, coupon, , channel, claimStatus] = record
+    const visits = claimStatus === '已核销' ? 4 + (index % 9) : 1 + (index % 4)
+    const totalSpent = visits * (52 + (index % 28))
+    const lifecycle = claimStatus === '已核销' ? '活跃会员' : index % 4 === 0 ? '新会员' : '活跃会员'
+    const activities: Array<[string, string, string]> = claimStatus === '已核销'
+      ? [[time, '支付核销', `${coupon}已核销，订单实付 ¥${31 + (index % 18)}`], [time, '领取优惠券', `从${channel}领取${coupon}`]]
+      : claimStatus === '即将结束'
+        ? [[time, '领取优惠券', `从${channel}领取${coupon}`], ['09.29 10:30', '到期提醒', '优惠券即将到期，已进入待提醒名单']]
+        : [[time, '领取优惠券', `从${channel}领取${coupon}`]]
+
+    return {
+      id: `MBR-202609-${phone.slice(-4)}`,
+      phone,
+      name: customer,
+      level: visits >= 8 ? '银卡会员' : '普通会员',
+      tags: claimStatus === '已核销' ? ['午餐偏好', '已完成核销'] : ['午餐偏好', '领券未核销'],
+      source: channel,
+      joinStore: '杭州西湖店',
+      joinDate: `2026.0${7 + (index % 3)}.${String(3 + (index % 24)).padStart(2, '0')}`,
+      lastVisit: claimStatus === '已核销' ? `2026.${time}` : '近 30 天有午餐消费',
+      visits: String(visits),
+      totalSpent: `¥${totalSpent.toLocaleString('zh-CN')}`,
+      avgSpent: `¥${Math.round(totalSpent / visits)}`,
+      balance: index % 3 === 0 ? '¥50' : '¥0',
+      points: String(totalSpent),
+      coupons: claimStatus === '已核销' ? '0 张' : '1 张',
+      lifecycle,
+      status: '正常',
+      preference: '工作日午餐、轻食套餐',
+      activePeriod: '工作日 11:30-13:30',
+      reachability: '微信可触达',
+      lastCoupon: coupon,
+      lastCampaign: '工作日午餐轻食活动',
+      suggestion: claimStatus === '已核销'
+        ? '已完成本次优惠券核销，可在下次午餐周期继续观察复购表现。'
+        : '已领取午餐券但尚未核销，建议在到期前发送一次券信息提醒。',
+      activities,
+    }
+  })
+  const selectedMember = selectedMemberPhone
+    ? memberProfiles.find((member) => member.phone === selectedMemberPhone)
+      ?? claimMemberProfiles.find((member) => member.phone === selectedMemberPhone)
+    : undefined
   const filteredMembers = memberProfiles.filter((member) => {
     const keyword = memberSearch.trim().toLowerCase()
     const matchesKeyword = !keyword || [member.name, member.phone, member.id, ...member.tags].some((value) => value.toLowerCase().includes(keyword))
@@ -2724,9 +2774,7 @@ function CouponCenterPage({
                 {pagedClaimRows.map(([time, phone, customer, coupon, code, channel, status, expire]) => (
                   <div key={code}>
                     <span>{time}</span>
-                    <span>{memberProfiles.some((member) => member.phone === phone)
-                      ? <button className="member-phone-link" type="button" onClick={() => setSelectedMemberPhone(phone)}>{phone}</button>
-                      : phone}</span>
+                    <span><button className="member-phone-link" type="button" onClick={() => setSelectedMemberPhone(phone)}>{phone}</button></span>
                     <span>{customer}</span>
                     <span>{coupon}</span>
                     <span>{code}</span>
@@ -3108,17 +3156,17 @@ function CouponCenterPage({
               </div>
               {couponStocks.map((stock) => (
                 <div key={stock.localStockNo}>
-                  <span>
+                  <span data-label="券批次">
                     <strong>{stock.name}</strong>
                     <em>{stock.localStockNo}</em>
                   </span>
-                  <span>{stock.rule}</span>
-                  <span>{stock.stock} / 余 {stock.available}</span>
-                  <span>{stock.claimed} / {stock.used}</span>
-                  <span>{stock.stockId}</span>
-                  <span><StatusBadge value={stock.sync} /></span>
-                  <span><StatusBadge value={stock.status} /></span>
-                  <div className="campaign-row-actions coupon-stock-actions">
+                  <span data-label="优惠规则">{stock.rule}</span>
+                  <span data-label="库存">{stock.stock} / 余 {stock.available}</span>
+                  <span data-label="领券 / 核销">{stock.claimed} / {stock.used}</span>
+                  <span data-label="微信券批次号">{stock.stockId}</span>
+                  <span data-label="同步"><StatusBadge value={stock.sync} /></span>
+                  <span data-label="状态"><StatusBadge value={stock.status} /></span>
+                  <div className="campaign-row-actions coupon-stock-actions" data-label="操作">
                     <div className="campaign-action-line campaign-info-actions">
                       <div>
                         <button
