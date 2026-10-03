@@ -1407,7 +1407,6 @@ function AiBusinessAssistant({
   onInsightHandled,
   selectedInsightId,
   onSelectInsight,
-  pageContext,
   onConversationGenerated,
 }: {
   open: boolean
@@ -1420,7 +1419,6 @@ function AiBusinessAssistant({
   onInsightHandled: (insight: AiBusinessInsight) => void
   selectedInsightId: string
   onSelectInsight: (id: string) => void
-  pageContext: string
   onConversationGenerated?: (insight: AiBusinessInsight) => void
 }) {
   const [showNudge, setShowNudge] = useState(() => {
@@ -1520,7 +1518,7 @@ function AiBusinessAssistant({
         <header>
           <div className="ai-business-brand">
             <span><img src={assetUrl('shengyitong-chat-robot.png')} alt="" /></span>
-            <div><strong>小意</strong><small><i />你的 AI 经营助手 · 正在关注{pageContext}</small></div>
+            <div><strong>小意</strong><small><i />你的 AI 经营助手</small></div>
           </div>
           <div className="ai-business-header-actions">
             {!allRead && !!insights.length && <button className="ai-business-read-all" type="button" onClick={markAllRead}><Check size={13} />全部标为已读</button>}
@@ -3633,7 +3631,6 @@ function CouponCenterPage({
         onInsightHandled={onAssistantInsightHandled}
         selectedInsightId={assistantInsightId}
         onSelectInsight={setAssistantInsightId}
-        pageContext={pageTitle}
         onConversationGenerated={onOpenGeneratedConversation}
       />
       {memberSmsNotice && <div className="toast member-sms-toast" role="status">{memberSmsNotice}</div>}
@@ -4505,7 +4502,6 @@ export default function App() {
           onInsightHandled={handleAssistantInsight}
           selectedInsightId={assistantInsightId}
           onSelectInsight={setAssistantInsightId}
-          pageContext="渠道利润分析"
           onConversationGenerated={openGeneratedAssistantConversation}
         />
         {toast && <div className="toast" role="status">{toast}</div>}
@@ -4962,7 +4958,6 @@ export default function App() {
         onInsightHandled={handleAssistantInsight}
         selectedInsightId={assistantInsightId}
         onSelectInsight={setAssistantInsightId}
-        pageContext="AI 会话首页"
         onConversationGenerated={openGeneratedAssistantConversation}
       />
       {copyShareTarget && (
