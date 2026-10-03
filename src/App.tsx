@@ -1304,7 +1304,6 @@ type AiBusinessInsight = {
   tone: 'critical' | 'warning' | 'opportunity'
   category: string
   title: string
-  compactTitle: string
   summary: string
   impact: string
   evidence: string[]
@@ -1321,7 +1320,6 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     tone: 'critical',
     category: '经营异常',
     title: '午餐券有 81 人领取后尚未核销',
-    compactTitle: '午餐券 81 人待核销',
     summary: '工作日午餐券已领取 128 人、核销 47 人；81 名未核销用户中有 42 人符合提醒条件。',
     impact: '预计可新增核销 12–18 单，带动 GMV ¥780–¥1,200',
     evidence: ['已领券 128 人', '已核销 47 人', '符合提醒条件 42 人'],
@@ -1336,7 +1334,6 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     tone: 'warning',
     category: '会员机会',
     title: '186 名高复购会员正在进入沉睡期',
-    compactTitle: '186 名高复购会员待召回',
     summary: '这批会员过去常在工作日午餐消费，但最近 30 天没有到店。',
     impact: '预计可召回 22–31 人，带动 GMV ¥1,800–¥2,600',
     evidence: ['目标会员 186 人', '历史月均消费 2.7 次', '午餐偏好占比 72%'],
@@ -1351,7 +1348,6 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     tone: 'opportunity',
     category: '节日营销',
     title: '国庆节到了，可以提前发布节日内容',
-    compactTitle: '国庆内容可提前发布',
     summary: '国庆期间出游、家庭聚餐和朋友小聚需求增加，适合提前在朋友圈和小红书进行内容预热。',
     impact: '提前完成节日内容准备，承接国庆期间的到店关注和聚餐需求',
     evidence: ['国庆假期临近', '家庭聚餐与朋友小聚需求增加', '朋友圈和小红书适合提前预热'],
@@ -1387,10 +1383,8 @@ function AiHomeBrief({ insights, onOpenInsight }: { insights: AiBusinessInsight[
               <span className="ai-home-insight-icon"><Icon size={17} /></span>
               <span className="ai-home-insight-copy">
                 <small>{insight.category}</small>
-                <strong>
-                  <span className="ai-home-insight-full-title">{insight.title}</span>
-                  <span className="ai-home-insight-compact-title">{insight.compactTitle}</span>
-                </strong>
+                <strong>{insight.title}</strong>
+                <span className="ai-home-insight-summary">{insight.summary}</span>
                 <em>{insight.impact}</em>
               </span>
               <span className="ai-home-insight-action">查看建议</span>
@@ -3380,7 +3374,7 @@ function CouponCenterPage({
             </div>
             <div className="member-ai-suggestion">
               <Sparkles size={18} />
-              <div><strong>AI 运营建议</strong><p>{selectedMember.suggestion}</p></div>
+              <div><strong>小意建议</strong><p>{selectedMember.suggestion}</p></div>
             </div>
           </section>
         </div>

@@ -280,7 +280,7 @@ html,body,#root{overflow-x:hidden}.composer-wrap,.suggestions,.suggestions butto
 .coupon-record-pagination button:disabled{cursor:default;color:#9aabba;background:#f4f6f8;border-color:#e0e7ef}
 @media(max-width:620px){.coupon-record-pagination{align-items:flex-start;flex-direction:column}.coupon-record-pagination>div{width:100%}.coupon-record-pagination button{flex:1}}
 
-.ai-home-insight-compact-title{display:none}
+.ai-home-insight-summary{display:none}
 
 @media(max-width:760px){
   .coupon-stock-table{border:0;overflow:visible;background:transparent}
@@ -299,18 +299,22 @@ html,body,#root{overflow-x:hidden}.composer-wrap,.suggestions,.suggestions butto
 
 @media(max-width:620px){
   .ai-home-brief{margin-top:10px}
-  .ai-home-brief-head{display:flex;align-items:center;gap:8px;padding:10px 11px 9px}
+  .ai-home-brief-head{display:flex;align-items:flex-start;gap:8px;padding:11px 12px 10px}
   .ai-home-brief-head>div{min-width:0;flex:1}
   .ai-home-brief-head>div>span{font-size:9px}
   .ai-home-brief-head h2{margin:4px 0 0;font-size:14px}
-  .ai-home-brief-head p{display:none}
+  .ai-home-brief-head p{display:block;margin-top:4px;font-size:9px;line-height:1.45}
   .ai-home-brief-head>button{height:27px;margin-top:0;padding:0 8px;font-size:9px}
-  .ai-home-insight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 9px 9px}
-  .ai-home-insight{min-width:0;min-height:62px;border:1px solid #e1eaf6!important;border-radius:7px;padding:7px 6px;display:grid;grid-template-columns:20px minmax(0,1fr);gap:5px;align-content:start}
-  .ai-home-insight-icon{width:20px;height:20px;border-radius:5px}
-  .ai-home-insight-icon svg{width:13px;height:13px}
-  .ai-home-insight-copy small,.ai-home-insight-copy em,.ai-home-insight-action{display:none}
-  .ai-home-insight-copy strong{margin:0;font-size:9px;line-height:1.4}
-  .ai-home-insight-full-title{display:none}
-  .ai-home-insight-compact-title{display:block}
+  .ai-home-insight-grid{display:grid;grid-template-columns:1fr;gap:0;padding:0}
+  .ai-home-insight{min-width:0;min-height:0;border:0!important;border-top:1px solid #e4edf8!important;border-radius:0;padding:11px 12px;display:grid;grid-template-columns:29px minmax(0,1fr);gap:9px;align-content:start}
+  .ai-home-insight:first-child{border-top:0!important}
+  .ai-home-insight-icon{width:28px;height:28px;border-radius:6px}
+  .ai-home-insight-icon svg{width:16px;height:16px}
+  .ai-home-insight-copy small{display:block;font-size:9px}
+  .ai-home-insight-copy strong{margin-top:3px;font-size:11px;line-height:1.4}
+  .ai-home-insight-summary{display:-webkit-box;margin-top:4px;color:#60738c;font-size:9px;line-height:1.5;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ai-home-insight-copy em{display:-webkit-box;margin-top:5px;color:#365b8d;font-size:9px;line-height:1.45;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ai-home-insight-action{display:block;grid-column:2;margin-top:6px;font-size:9px}
+  .composer-wrap .suggestions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 0 9px}
+  .composer-wrap .suggestions button{width:100%;max-width:none;min-height:42px;padding:6px;font-size:9px;text-align:center}
 }
