@@ -75,7 +75,7 @@ type MarketingPageArtifact = {
   href: string
   description: string
   campaign: string
-  coupon: string
+  coupon?: string
 }
 type MarketingSimulationStep = {
   kind: 'thinking' | 'skill' | 'mcp' | 'answer'
@@ -94,6 +94,8 @@ type CopyShareTarget = {
   title: string
   text: string
   imageUrl?: string
+  landingPageUrl?: string
+  qrDescription?: string
 }
 type UsageState = {
   fixed: boolean
@@ -166,12 +168,16 @@ const aiAssistantMinimizedKey = 'shengyitong:ai-assistant-minimized'
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}${fileName}`
 const publicCampaignBaseUrl = 'https://roydeen.github.io/shengyitong-demo/'
 const campaignMerchantName = '杭州西湖店'
-const campaignShareVersion = '20260929-2'
-const getCampaignShareSlug = (href: string) => href.includes('weekend-banquet') ? 'weekend-banquet' : 'spring-salad'
+const campaignShareVersion = '20261003-3'
+const getCampaignShareSlug = (href: string) => {
+  if (href.includes('national-day')) return 'national-day'
+  return href.includes('weekend-banquet') ? 'weekend-banquet' : 'spring-salad'
+}
 const getCampaignShareUrl = (href: string) => `${publicCampaignBaseUrl}share/${getCampaignShareSlug(href)}.html?v=${campaignShareVersion}`
 const copyShareImageUrl = `${publicCampaignBaseUrl}campaign-light-meal-poster-3x4.jpg`
 
 const getInitialAiAssistantMinimized = () => {
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches) return true
   try {
     return window.localStorage.getItem(aiAssistantMinimizedKey) === 'true'
   } catch {
@@ -204,6 +210,7 @@ const copyShareTargets: CopyShareTarget[] = [
   },
 ]
 const nationalDayShareImageUrl = `${publicCampaignBaseUrl}campaign-national-day-poster-3x4.jpg?v=20261003-2`
+const nationalDayLandingPageUrl = `${publicCampaignBaseUrl}share/national-day.html?v=${campaignShareVersion}`
 const nationalDayShareTargets: CopyShareTarget[] = [
   {
     id: 'wechat-moments',
@@ -212,6 +219,8 @@ const nationalDayShareTargets: CopyShareTarget[] = [
     title: '国庆相聚，来西湖边吃顿好饭',
     text: '国庆假期，难得和家人朋友坐下来好好吃顿饭。杭州西湖店已准备好清爽轻食与精致中餐，祝大家国庆快乐，山河锦绣，团聚有味。',
     imageUrl: nationalDayShareImageUrl,
+    landingPageUrl: nationalDayLandingPageUrl,
+    qrDescription: '用微信扫一扫进入独立国庆宣传页，可继续转发给好友或朋友圈。',
   },
   {
     id: 'xiaohongshu',
@@ -223,7 +232,7 @@ const nationalDayShareTargets: CopyShareTarget[] = [
   },
 ]
 const getCopyShareUrl = (target: CopyShareTarget) =>
-  `${publicCampaignBaseUrl}?copy_share=1&platform=${target.id}&title=${encodeURIComponent(target.title)}&text=${encodeURIComponent(target.text)}&image=${encodeURIComponent(target.imageUrl ?? copyShareImageUrl)}`
+  target.landingPageUrl ?? `${publicCampaignBaseUrl}?copy_share=1&platform=${target.id}&title=${encodeURIComponent(target.title)}&text=${encodeURIComponent(target.text)}&image=${encodeURIComponent(target.imageUrl ?? copyShareImageUrl)}`
 const channelReport: ReportArtifact = {
   title: '近7天渠道毛利与退款分析报表',
   href: '#/reports/channel-profit',
@@ -297,6 +306,13 @@ const weekendBanquetCampaign: MarketingPageArtifact = {
   campaign: '周末雅宴团圆礼',
   coupon: '满 499 减 80 元宴请券',
   description: '面向周末家庭聚餐和商务宴请生成的活动领取页，顾客扫码或点击进入后领券，到店消费时按天财商龙营销规则核销。',
+}
+
+const nationalDayCampaign: MarketingPageArtifact = {
+  title: '国庆相聚主题宣传页',
+  href: '#/campaigns/national-day',
+  campaign: '国庆相聚主题内容',
+  description: '面向微信朋友圈生成的国庆主题宣传页，顾客扫码后可查看完整海报、聚餐场景和门店信息，并继续转发分享。',
 }
 
 const scenarios: Scenario[] = [
@@ -1567,7 +1583,7 @@ function AiBusinessAssistant({
                   <div className={`ai-business-execution ${actionState}`} role="status">
                     {actionState === 'running' ? <LoaderCircle size={16} /> : <Check size={16} />}
                     <div>
-                      <strong>{actionState === 'running' ? 'AI 正在生成执行方案' : '执行方案已生成'}</strong>
+                      <strong>{actionState === 'running' ? '小意正在生成' : '执行方案已生成'}</strong>
                       <small>{actionState === 'running' ? '正在匹配目标用户、营销规则和触达内容…' : '已完成对象筛选和内容生成，等待你确认发布。'}</small>
                     </div>
                   </div>
@@ -3558,8 +3574,25 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
   const pageSearch = typeof window === 'undefined' ? '' : window.location.search
   const hashSearch = typeof window === 'undefined' ? '' : (window.location.hash.split('?')[1] ?? '')
   const isSharePage = new URLSearchParams(pageSearch).get('share') === '1' || new URLSearchParams(hashSearch).get('share') === '1'
+  const isNationalDayPage = page.href.includes('national-day')
   const isBanquetPage = page.href.includes('weekend-banquet')
-  const mobilePage = isBanquetPage
+  const mobilePage = isNationalDayPage
+    ? {
+      image: 'campaign-national-day-poster-3x4.jpg?v=20261003-2',
+      imageAlt: '国庆相聚主题海报',
+      kicker: '杭州西湖店 · 国庆相聚',
+      title: '国庆相聚，来西湖边吃顿好饭',
+      intro: '难得的假期，把脚步放慢一点，和家人朋友坐下来好好吃顿饭。',
+      sectionLabel: '国庆相聚',
+      sectionTitle: '这个假期，好好吃顿饭',
+      sectionBody: '清爽轻食、精致中餐和适合分享的时令菜都已准备好。无论是家庭聚餐、朋友小聚，还是逛完西湖后的假日午餐，都能从容入座。',
+      tags: ['家庭聚餐', '朋友小聚', '西湖假日午餐'],
+      audienceLabel: '相聚时刻',
+      audienceTitle: '把难得见面的人，约到一张餐桌上',
+      audienceBody: '国庆不必赶满行程。留一顿饭的时间聊聊近况、分享沿途风景，让这个假期多一点真实的相聚。热门用餐时段建议提前安排。',
+      shareText: '国庆假期，和家人朋友来西湖边好好吃顿饭。',
+    }
+    : isBanquetPage
     ? {
       image: 'campaign-premium-banquet-3x4.jpg',
       imageAlt: '高级中餐宴请海报',
@@ -3591,7 +3624,11 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       shareText: '工作日午餐轻食券，清爽、饱腹、不费脑。',
     }
   const shareUrl = getCampaignShareUrl(page.href)
-  const shareImageFile = isBanquetPage ? 'campaign-premium-banquet-share.jpg' : 'campaign-light-meal-share.jpg'
+  const shareImageFile = isNationalDayPage
+    ? 'campaign-national-day-poster-3x4.jpg?v=20261003-2'
+    : isBanquetPage
+      ? 'campaign-premium-banquet-share.jpg'
+      : 'campaign-light-meal-share.jpg'
   const shareImageUrl = `${publicCampaignBaseUrl}${shareImageFile}`
   const qrPreviewUrl = `https://api.qrserver.com/v1/create-qr-code/?size=92x92&margin=6&data=${encodeURIComponent(shareUrl)}`
   const qrLargeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(shareUrl)}`
@@ -3754,13 +3791,15 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
       <main className="campaign-canvas">
         <section className="mobile-campaign-frame" aria-label="移动端活动页预览">
           <div className="mobile-campaign-page">
-            <section className="mobile-campaign-hero">
+            <section className={`mobile-campaign-hero ${isNationalDayPage ? 'is-poster' : ''}`}>
               <img src={assetUrl(mobilePage.image)} alt={mobilePage.imageAlt} />
-              <div>
-                <span>{mobilePage.kicker}</span>
-                <h1>{mobilePage.title}</h1>
-                <p>{mobilePage.intro}</p>
-              </div>
+              {!isNationalDayPage && (
+                <div>
+                  <span>{mobilePage.kicker}</span>
+                  <h1>{mobilePage.title}</h1>
+                  <p>{mobilePage.intro}</p>
+                </div>
+              )}
             </section>
 
             <section className="mobile-campaign-section">
@@ -3778,42 +3817,44 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
               <p>{mobilePage.audienceBody}</p>
             </section>
 
-            <section className="mobile-campaign-coupon">
-              <small>限时优惠券</small>
-              <strong>{page.coupon}</strong>
-              <p>登录会员账号领取；新顾客也可以输入手机号领取。</p>
-              <form onSubmit={claimCoupon} noValidate>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  maxLength={11}
-                  value={claimPhone}
-                  aria-label="手机号"
-                  aria-invalid={claimFeedback?.type === 'error'}
-                  aria-describedby={claimFeedback ? 'campaign-claim-feedback' : undefined}
-                  className={claimFeedback?.type ?? ''}
-                  placeholder="输入手机号领取优惠券"
-                  onChange={(event) => {
-                    setClaimPhone(event.target.value.replace(/\D/g, '').slice(0, 11))
-                    setClaimFeedback(null)
-                  }}
-                />
-                <button type="submit" disabled={claimFeedback?.type === 'success'}>
-                  {claimFeedback?.type === 'success' ? '已领取' : '领取'}
-                </button>
-                {claimFeedback && (
-                  <div
-                    id="campaign-claim-feedback"
-                    className={`campaign-claim-feedback ${claimFeedback.type}`}
-                    role={claimFeedback.type === 'error' ? 'alert' : 'status'}
-                  >
-                    {claimFeedback.type === 'success' ? <Check size={14} /> : <CircleStop size={14} />}
-                    <span>{claimFeedback.message}</span>
-                  </div>
-                )}
-              </form>
-            </section>
+            {page.coupon && (
+              <section className="mobile-campaign-coupon">
+                <small>限时优惠券</small>
+                <strong>{page.coupon}</strong>
+                <p>登录会员账号领取；新顾客也可以输入手机号领取。</p>
+                <form onSubmit={claimCoupon} noValidate>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={11}
+                    value={claimPhone}
+                    aria-label="手机号"
+                    aria-invalid={claimFeedback?.type === 'error'}
+                    aria-describedby={claimFeedback ? 'campaign-claim-feedback' : undefined}
+                    className={claimFeedback?.type ?? ''}
+                    placeholder="输入手机号领取优惠券"
+                    onChange={(event) => {
+                      setClaimPhone(event.target.value.replace(/\D/g, '').slice(0, 11))
+                      setClaimFeedback(null)
+                    }}
+                  />
+                  <button type="submit" disabled={claimFeedback?.type === 'success'}>
+                    {claimFeedback?.type === 'success' ? '已领取' : '领取'}
+                  </button>
+                  {claimFeedback && (
+                    <div
+                      id="campaign-claim-feedback"
+                      className={`campaign-claim-feedback ${claimFeedback.type}`}
+                      role={claimFeedback.type === 'error' ? 'alert' : 'status'}
+                    >
+                      {claimFeedback.type === 'success' ? <Check size={14} /> : <CircleStop size={14} />}
+                      <span>{claimFeedback.message}</span>
+                    </div>
+                  )}
+                </form>
+              </section>
+            )}
 
             <section className="mobile-campaign-share">
               <button onClick={shareCampaign}>
@@ -4345,6 +4386,15 @@ export default function App() {
     setAssistantOpen(true)
   }
 
+  const openCopyShareTarget = (target: CopyShareTarget) => {
+    const isMobile = window.matchMedia('(max-width: 760px)').matches
+    if (isMobile && target.landingPageUrl) {
+      window.location.assign(`${import.meta.env.BASE_URL}share/national-day.html?v=${campaignShareVersion}`)
+      return
+    }
+    setCopyShareTargetId(target.id)
+  }
+
   const markAllAssistantRead = () => {
     setAssistantAllRead(true)
   }
@@ -4395,6 +4445,15 @@ export default function App() {
     return (
       <>
         <MarketingPage page={weekendBanquetCampaign} onSavePoster={() => notify('已生成海报，可用于朋友圈和门店物料')} />
+        {toast && <div className="toast" role="status">{toast}</div>}
+      </>
+    )
+  }
+
+  if (appRouteHash.split('?')[0] === '#/campaigns/national-day') {
+    return (
+      <>
+        <MarketingPage page={nationalDayCampaign} onSavePoster={() => notify('国庆主题海报已生成，可用于朋友圈和门店物料')} />
         {toast && <div className="toast" role="status">{toast}</div>}
       </>
     )
@@ -4559,7 +4618,7 @@ export default function App() {
                       <div className="approval-icon">{approved ? <Check size={18} /> : <ShieldCheck size={18} />}</div>
                       <div>
                         <strong>{approved ? '已确认，提醒任务已进入发送队列' : '发送前需要店长确认'}</strong>
-                        <p>{approved ? '系统将在今天 10:30 向 42 名目标会员发送短信，并持续跟踪核销结果。' : 'AI 已完成目标用户、短信内容和优惠券信息配置，当前不会自动发送。'}</p>
+                        <p>{approved ? '系统将在今天 10:30 向 42 名目标会员发送短信，并持续跟踪核销结果。' : '小意已完成目标用户、短信内容和优惠券信息配置，当前不会自动发送。'}</p>
                       </div>
                       <div className="approval-actions">
                         {!approved && <button className="ghost-button" onClick={() => notify('已保留提醒方案，暂未发送')}>暂不发送</button>}
@@ -4575,7 +4634,7 @@ export default function App() {
                       <strong>平台分享</strong>
                       <div>
                         {activeCopyShareTargets.map((target) => (
-                          <button key={target.id} type="button" onClick={() => setCopyShareTargetId(target.id)}>
+                          <button key={target.id} type="button" onClick={() => openCopyShareTarget(target)}>
                             <Share2 size={15} />
                             {target.action}
                           </button>
@@ -4702,7 +4761,7 @@ export default function App() {
                   <strong>平台分享</strong>
                   <div>
                     {activeCopyShareTargets.map((target) => (
-                      <button key={target.id} type="button" onClick={() => setCopyShareTargetId(target.id)}>
+                      <button key={target.id} type="button" onClick={() => openCopyShareTarget(target)}>
                         <Share2 size={15} />
                         {target.action}
                       </button>
@@ -4836,7 +4895,7 @@ export default function App() {
               src={`https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(getCopyShareUrl(copyShareTarget))}`}
               alt={`${copyShareTarget.action}二维码`}
             />
-            <p>用{copyShareTarget.appName}扫码打开，系统会带入 3:4 海报图片、标题和文案内容。</p>
+            <p>{copyShareTarget.qrDescription ?? `用${copyShareTarget.appName}扫码打开，系统会带入 3:4 海报图片、标题和文案内容。`}</p>
             <div className="copy-share-preview">
               <span>{copyShareTarget.title}</span>
               <small>{copyShareTarget.text}</small>
