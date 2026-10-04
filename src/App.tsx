@@ -7,10 +7,12 @@ import {
   CalendarClock,
   Check,
   ChevronDown,
+  CloudRain,
   CircleDollarSign,
   ClipboardCheck,
   ClipboardList,
   Copy,
+  Coffee,
   CircleStop,
   Database,
   Download,
@@ -53,6 +55,7 @@ import {
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import OperationsDashboard from './OperationsDashboard'
 
 type ScenarioKind = '功能类' | '数据报表类' | '操作类' | '预测类' | '营销活动类'
 type FindingTone = 'critical' | 'opportunity' | 'info'
@@ -316,6 +319,159 @@ const nationalDayCampaign: MarketingPageArtifact = {
 }
 
 const scenarios: Scenario[] = [
+  {
+    id: 'afternoon-tea-growth-plan',
+    kind: '营销活动类',
+    title: '下午茶场景增长方案',
+    question: '根据最近经营数据，生成一份下午茶场景常态化经营方案。',
+    starter: '生成下午茶场景增长方案',
+    time: '刚刚',
+    icon: Coffee,
+    intro: '我会先核对下午时段的订单、人次和实收，再设计产品结构、企业客户开发方式与阶段目标。',
+    steps: [
+      ['分析下午时段表现', '读取近 30 天 14:00–17:00 的订单、人次、实收和堂食人均'],
+      ['设计分层产品', '生成单人轻享、双人商务下午茶和 4–6 人会议茶歇三档产品'],
+      ['规划客户开发', '拆分门店内转化、写字楼定向开发和固定主题日三条路径'],
+      ['设置评估指标', '建立下午日均实收、订单数、多人订单占比和企业茶歇订单监控'],
+    ],
+    summary: '已生成下午茶场景常态化方案。建议优先发展双人商务下午茶和企业会议茶歇，不依赖长期折扣。',
+    creativeOutput: {
+      markdown: `## 下午茶场景增长方案
+
+小意已完成下午时段数据分析、产品分层和客户开发路径设计，方案如下：
+
+### 数据依据
+
+- **近 30 天下午日均实收：** 约 ¥1,257
+- **日均订单：** 约 9.9 单
+- **日均到店：** 约 16 人
+- **阶段目标：** 提升至 ¥1,600–¥1,800/日
+
+### 产品结构
+
+| 产品 | 建议售价 | 适用场景 | 组合方式 |
+| --- | ---: | --- | --- |
+| 单人轻享 | ¥38–¥48 | 白领个人下午茶 | 咖啡或茶饮 + 单份点心 |
+| 双人商务下午茶 | ¥68–¥88 | 同事沟通、轻商务 | 2 杯饮品 + 2–3 款点心 |
+| 4–6 人会议茶歇 | ¥168–¥268 | 小型会议、部门茶歇 | 茶饮壶 + 点心拼盘 |
+
+### 执行路径
+
+1. **门店内转化：** 午餐结账时展示下午茶场景与会员价，不发大额优惠券。
+2. **企业定向开发：** 建立周边 1 公里企业行政、HR、部门助理和前台联系人清单。
+3. **固定主题日：** 设置商务茶歇日、会员下午茶和双人下午茶，形成固定消费记忆。
+
+### 企业权益
+
+> 提前 2 小时预订，满 ¥199 免费送至公司前台。
+
+### 监控指标
+
+- 下午时段日均实收
+- 14:00–17:00 订单数
+- 双人及以上订单占比
+- 企业茶歇订单数
+
+建议先运行 30 天，以日均实收达到 ¥1,600 为首阶段达标线。`,
+    },
+    findings: [
+      {
+        tone: 'opportunity',
+        label: '闲时机会',
+        meta: '14:00–17:00',
+        title: '下午已有稳定消费，不需要从零教育市场',
+        body: '近 30 天下午时段每天已有约 10 单，适合通过产品标准化和企业客户开发放大需求。',
+      },
+    ],
+    nextActions: ['确认三档产品与价格', '创建企业客户池', '生成门店员工执行清单'],
+    context: {
+      updatedAt: '刚刚',
+      permissions: [
+        ['可读取', '经营订单、分时段实收、到店人次'],
+        ['可生成', '产品结构、客户开发方案、监控指标'],
+        ['需批准', '正式创建产品和企业权益'],
+      ],
+      references: [
+        ['下午时段经营数据', '近 30 天日均约 9.9 单、实收约 ¥1,257', CalendarClock],
+        ['杭州西湖店', '118 个餐位，下午具备闲时承载空间', Store],
+      ],
+    },
+  },
+  {
+    id: 'rain-enterprise-delivery-plan',
+    kind: '营销活动类',
+    title: '大雨天气企业外送方案',
+    question: '根据历史天气和经营数据，生成一份大雨天气自动触发的企业外送方案。',
+    starter: '生成大雨天气企业外送方案',
+    time: '刚刚',
+    icon: CloudRain,
+    intro: '我会对比不同天气下的订单与实收，设计非平台外卖的企业预约外送产品和自动触发规则。',
+    steps: [
+      ['校验天气影响', '对比 763 天经营记录中的晴天、多云、小雨和大雨表现'],
+      ['设计企业餐产品', '生成单人、分享餐、部门餐和 10 人以上企业餐四档产品'],
+      ['配置触发规则', '当次日午餐时段预报大雨时，于前一日 17:00 创建触达任务'],
+      ['生成触达内容', '突出提前预约、准时送达和公司前台交付，不依赖满减促销'],
+    ],
+    summary: '已生成大雨天气企业外送方案。建议提前沉淀企业联系人，并在预报触发后开放次日预约。',
+    creativeOutput: {
+      markdown: `## 大雨天气企业外送方案
+
+小意已完成天气影响分析、企业餐产品设计和触发规则配置，方案如下：
+
+### 数据依据
+
+- **历史大雨样本：** 41 天
+- **大雨日均实收：** 约 ¥13,174
+- **其他天气日均实收：** 约 ¥19,382
+- **营业实收降幅：** 约 32%
+
+### 企业餐产品
+
+| 产品 | 建议售价 | 适用场景 |
+| --- | ---: | --- |
+| 单人工作餐 | ¥35–¥45 | 普通员工午餐 |
+| 2–3 人分享餐 | ¥98–¥138 | 小团队用餐 |
+| 5–8 人部门餐 | ¥268–¥398 | 部门聚餐、加班 |
+| 10 人以上企业餐 | ¥45–¥65/人 | 会议、培训和集体用餐 |
+
+### 自动触发规则
+
+1. 天气预报显示次日 11:00–14:00 为大雨。
+2. 系统在前一日 17:00 筛选周边 1 公里企业联系人。
+3. 生成预约通知，店长确认后发送。
+4. 次日 10:30 截止预约，12:00 前送达公司前台。
+
+### 触达文案
+
+> 明天有大雨，午饭不用下楼。杭州西湖店雨天企业餐已开放预约，满 ¥199 免费送至公司前台。10:30 前下单，12:00 前送达。
+
+### 经营目标
+
+首阶段以挽回 20% 的雨天收入缺口为目标，重点监控企业订单数、准时送达率、订单均价和复购企业数。`,
+    },
+    findings: [
+      {
+        tone: 'critical',
+        label: '天气影响',
+        meta: '历史大雨日',
+        title: '大雨主要影响自然到店，应提前转化为企业预约订单',
+        body: '大雨日实收较其他天气低约 32%，核心解决方案应是便利性，而不是临时降价。',
+      },
+    ],
+    nextActions: ['确认企业餐产品', '配置天气触发条件', '整理企业联系人名单'],
+    context: {
+      updatedAt: '刚刚',
+      permissions: [
+        ['可读取', '历史天气、经营订单、企业联系人'],
+        ['可生成', '企业餐产品、触发规则、预约通知'],
+        ['需批准', '发送企业通知和开放外送预约'],
+      ],
+      references: [
+        ['历史天气经营对比', '41 个大雨日，实收较其他天气低约 32%', CloudRain],
+        ['企业客户池', '周边 1 公里企业联系人待完善', Users],
+      ],
+    },
+  },
   {
     id: 'lunch-reminder-plan',
     kind: '营销活动类',
@@ -1120,10 +1276,30 @@ const nationalDayCopySession: HistorySession = {
   summary: '已生成朋友圈、小红书文案和节日海报',
 }
 
+const afternoonTeaGrowthSession: HistorySession = {
+  id: 'history-afternoon-tea-growth-plan',
+  title: '下午茶场景增长方案',
+  scenarioId: 'afternoon-tea-growth-plan',
+  prompt: '根据最近经营数据，生成一份下午茶场景常态化经营方案。',
+  time: '刚刚',
+  summary: '已生成下午茶产品、企业开发和监控方案',
+}
+
+const rainEnterpriseDeliverySession: HistorySession = {
+  id: 'history-rain-enterprise-delivery-plan',
+  title: '大雨天气企业外送方案',
+  scenarioId: 'rain-enterprise-delivery-plan',
+  prompt: '根据历史天气和经营数据，生成一份大雨天气自动触发的企业外送方案。',
+  time: '刚刚',
+  summary: '已生成企业餐产品与天气触发规则',
+}
+
 const generatedAssistantSessions: Record<string, HistorySession> = {
   'lunch-redemption': lunchReminderSession,
   'member-sleeping': memberRecallSession,
   'national-day-copy': nationalDayCopySession,
+  'afternoon-tea-growth': afternoonTeaGrowthSession,
+  'rain-enterprise-delivery': rainEnterpriseDeliverySession,
 }
 
 const guidedSessionKeywords: Record<string, string[]> = {
@@ -1315,6 +1491,34 @@ type AiBusinessInsight = {
 }
 
 const aiBusinessInsights: AiBusinessInsight[] = [
+  {
+    id: 'afternoon-tea-growth',
+    tone: 'opportunity',
+    category: '时段机会',
+    title: '下午时段已有稳定需求，可打造常态化茶歇场景',
+    summary: '近 30 天下午时段已有稳定订单，适合重点发展双人商务下午茶与企业会议茶歇。',
+    impact: '目标将下午时段日均实收提升至 ¥1,600–¥1,800',
+    evidence: ['下午时段已有稳定流水', '双人及多人场景更匹配门店空间', '企业茶歇具备增量机会'],
+    recommendation: '设计单人、双人和 4–6 人三档产品，重点发展双人商务下午茶与企业会议茶歇。',
+    actionLabel: '生成下午茶方案',
+    route: '#/coupon-center/operations',
+    routeLabel: '查看经营数据',
+    Icon: Coffee,
+  },
+  {
+    id: 'rain-enterprise-delivery',
+    tone: 'warning',
+    category: '天气预警',
+    title: '大雨天气显著影响自然到店和营业实收',
+    summary: '历史大雨日经营表现明显低于其他天气，适合用企业预约外送承接流失订单。',
+    impact: '首阶段争取挽回 20% 的雨天收入缺口',
+    evidence: ['历史大雨日经营表现下降', '周边写字楼具备集中配送条件', '可提前一天触发预约'],
+    recommendation: '提前沉淀周边企业联系人，在次日午餐预报大雨时自动生成预约触达任务。',
+    actionLabel: '生成天气触发方案',
+    route: '#/coupon-center/operations',
+    routeLabel: '查看经营数据',
+    Icon: CloudRain,
+  },
   {
     id: 'lunch-redemption',
     tone: 'critical',
@@ -1691,6 +1895,7 @@ function CouponCenterPage({
     { name: '用户领券记录', detail: '领取明细、券码、渠道和状态', Icon: Users, href: '#/coupon-center/claims' },
     { name: '核销管理', detail: '订单核销、抵扣和支付流水', Icon: Check, href: '#/coupon-center/redemptions' },
     { name: '券使用报表', detail: '访问、领券、核销、GMV 和成本', Icon: BarChart3, href: '#/coupon-center/reports' },
+    { name: '经营数据', detail: '订单、收入、时段和到店客流', Icon: LayoutDashboard, href: '#/coupon-center/operations' },
   ]
   const isStockPage = routeHash.startsWith('#/coupon-center/stocks')
   const isCampaignManagePage = routeHash.startsWith('#/coupon-center/campaigns')
@@ -1698,10 +1903,13 @@ function CouponCenterPage({
   const isClaimRecordsPage = routeHash.startsWith('#/coupon-center/claims')
   const isRedemptionPage = routeHash.startsWith('#/coupon-center/redemptions')
   const isUsageReportPage = routeHash.startsWith('#/coupon-center/reports')
+  const isOperationsPage = routeHash.startsWith('#/coupon-center/operations')
   const routeQuery = new URLSearchParams(routeHash.split('?')[1] ?? '')
   const isReminderClaimsView = isClaimRecordsPage && routeQuery.get('filter') === 'reminder'
-  const isSubPage = isStockPage || isCampaignManagePage || isMemberPage || isClaimRecordsPage || isRedemptionPage || isUsageReportPage
-  const pageTitle = isCampaignManagePage
+  const isSubPage = isOperationsPage || isStockPage || isCampaignManagePage || isMemberPage || isClaimRecordsPage || isRedemptionPage || isUsageReportPage
+  const pageTitle = isOperationsPage
+    ? '经营数据'
+    : isCampaignManagePage
     ? '活动管理'
     : isMemberPage
       ? '会员管理'
@@ -1714,7 +1922,9 @@ function CouponCenterPage({
           : isUsageReportPage
             ? '券使用报表'
             : '优惠券中心'
-  const pageDescription = isCampaignManagePage
+  const pageDescription = isOperationsPage
+    ? '订单、营业额、时段结构、到店客流和经营趋势'
+    : isCampaignManagePage
     ? '管理从活动方案、领券页、券批次、投放渠道到复盘报表的完整私域营销链路。'
     : isMemberPage
       ? '统一查看会员画像、消费贡献、账户资产和营销响应，为活动人群选择提供依据。'
@@ -2593,8 +2803,8 @@ function CouponCenterPage({
           <div className="coupon-admin-heading">
             {isSubPage ? (
               <>
-                <button className="coupon-admin-back" type="button" onClick={() => openCouponPage('#/coupon-center')}>
-                  优惠券中心
+                <button className="coupon-admin-back" type="button" onClick={() => { if (isOperationsPage) window.location.hash = ''; else openCouponPage('#/coupon-center') }}>
+                  {isOperationsPage ? 'AI 经营平台' : '优惠券中心'}
                 </button>
                 <h1>{pageTitle}</h1>
               </>
@@ -2611,7 +2821,17 @@ function CouponCenterPage({
           </div>
         </header>
 
-        {isMemberPage ? (
+        {isOperationsPage ? (
+          <OperationsDashboard
+            suggestionIds={assistantInsights.map((insight) => insight.id)}
+            onGenerateSuggestion={(id) => {
+              const insight = assistantInsights.find((item) => item.id === id)
+              if (!insight) return
+              onAssistantInsightHandled(insight)
+              onOpenGeneratedConversation(insight)
+            }}
+          />
+        ) : isMemberPage ? (
           <section className="coupon-feature-page member-management-page">
             <section className="coupon-admin-metrics">
               {[
@@ -3974,13 +4194,27 @@ function MarketingPage({ page, onSavePoster }: { page: MarketingPageArtifact; on
 type MarkdownBlock =
   | { type: 'heading'; level: number; text: string }
   | { type: 'paragraph'; text: string }
-  | { type: 'list'; items: string[] }
+  | { type: 'list'; ordered: boolean; items: string[] }
+  | { type: 'quote'; text: string }
+  | { type: 'table'; headers: string[]; alignments: Array<'left' | 'center' | 'right'>; rows: string[][] }
   | { type: 'image'; alt: string; src: string }
+
+const parseMarkdownTableRow = (line: string) => line
+  .replace(/^\|/, '')
+  .replace(/\|$/, '')
+  .split('|')
+  .map((cell) => cell.trim())
+
+const isMarkdownTableDivider = (line: string) => {
+  const cells = parseMarkdownTableRow(line)
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell))
+}
 
 function parseMarkdown(markdown: string): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = []
   const paragraph: string[] = []
   const listItems: string[] = []
+  let listOrdered = false
 
   const flushParagraph = () => {
     if (!paragraph.length) return
@@ -3989,16 +4223,38 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
   }
   const flushList = () => {
     if (!listItems.length) return
-    blocks.push({ type: 'list', items: [...listItems] })
+    blocks.push({ type: 'list', ordered: listOrdered, items: [...listItems] })
     listItems.length = 0
   }
 
-  markdown.split(/\r?\n/).forEach((rawLine) => {
+  const lines = markdown.split(/\r?\n/)
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index]
     const line = rawLine.trim()
     if (!line) {
       flushParagraph()
       flushList()
-      return
+      continue
+    }
+
+    const nextLine = lines[index + 1]?.trim() ?? ''
+    if (line.startsWith('|') && nextLine.startsWith('|') && isMarkdownTableDivider(nextLine)) {
+      flushParagraph()
+      flushList()
+      const headers = parseMarkdownTableRow(line)
+      const divider = parseMarkdownTableRow(nextLine)
+      const alignments = divider.map((cell) => cell.startsWith(':') && cell.endsWith(':')
+        ? 'center'
+        : cell.endsWith(':') ? 'right' : 'left') as Array<'left' | 'center' | 'right'>
+      const rows: string[][] = []
+      index += 2
+      while (index < lines.length && lines[index].trim().startsWith('|')) {
+        rows.push(parseMarkdownTableRow(lines[index].trim()))
+        index += 1
+      }
+      blocks.push({ type: 'table', headers, alignments, rows })
+      index -= 1
+      continue
     }
 
     const heading = /^(#{1,6})\s+(.+)$/.exec(line)
@@ -4006,7 +4262,7 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
       flushParagraph()
       flushList()
       blocks.push({ type: 'heading', level: heading[1].length, text: heading[2] })
-      return
+      continue
     }
 
     const image = /^!\[([^\]]*)\]\(([^)]+)\)$/.exec(line)
@@ -4014,19 +4270,32 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
       flushParagraph()
       flushList()
       blocks.push({ type: 'image', alt: image[1], src: image[2] })
-      return
+      continue
     }
 
-    const listItem = /^-\s+(.+)$/.exec(line)
+    const quote = /^>\s?(.+)$/.exec(line)
+    if (quote) {
+      flushParagraph()
+      flushList()
+      blocks.push({ type: 'quote', text: quote[1] })
+      continue
+    }
+
+    const unorderedListItem = /^[-*]\s+(.+)$/.exec(line)
+    const orderedListItem = /^\d+[.)]\s+(.+)$/.exec(line)
+    const listItem = unorderedListItem ?? orderedListItem
     if (listItem) {
       flushParagraph()
+      const ordered = !!orderedListItem
+      if (listItems.length && listOrdered !== ordered) flushList()
+      listOrdered = ordered
       listItems.push(listItem[1])
-      return
+      continue
     }
 
     flushList()
     paragraph.push(line)
-  })
+  }
 
   flushParagraph()
   flushList()
@@ -4072,14 +4341,46 @@ function CreativeMarkdownAnswer({ output }: { output: CreativeOutput }) {
           )
         }
         if (block.type === 'list') {
+          const ListTag = block.ordered ? 'ol' : 'ul'
           return (
-            <ul key={`md-${index}`}>
+            <ListTag key={`md-${index}`}>
               {block.items.map((item, itemIndex) => (
                 <li key={`md-${index}-${itemIndex}`}>
                   {renderMarkdownInline(item, `md-${index}-${itemIndex}`)}
                 </li>
               ))}
-            </ul>
+            </ListTag>
+          )
+        }
+        if (block.type === 'quote') {
+          return <blockquote key={`md-${index}`}>{renderMarkdownInline(block.text, `md-${index}`)}</blockquote>
+        }
+        if (block.type === 'table') {
+          return (
+            <div className="markdown-table-wrap" key={`md-${index}`}>
+              <table>
+                <thead>
+                  <tr>
+                    {block.headers.map((header, cellIndex) => (
+                      <th key={`md-${index}-head-${cellIndex}`} style={{ textAlign: block.alignments[cellIndex] ?? 'left' }}>
+                        {renderMarkdownInline(header, `md-${index}-head-${cellIndex}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr key={`md-${index}-row-${rowIndex}`}>
+                      {block.headers.map((_header, cellIndex) => (
+                        <td key={`md-${index}-row-${rowIndex}-${cellIndex}`} style={{ textAlign: block.alignments[cellIndex] ?? 'left' }}>
+                          {renderMarkdownInline(row[cellIndex] ?? '', `md-${index}-row-${rowIndex}-${cellIndex}`)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )
         }
         if (block.type === 'image') {
@@ -4920,6 +5221,7 @@ export default function App() {
                 ['用户领券记录', '领取用户、渠道、卡包入账状态', Users, '#/coupon-center/claims'],
                 ['核销管理', '订单实付、优惠抵扣、核销状态', WalletCards, '#/coupon-center/redemptions'],
                 ['券使用报表', '访问、领券、核销、GMV 和成本', BarChart3, '#/coupon-center/reports'],
+                ['经营数据', '订单、收入、时段和到店客流', LayoutDashboard, '#/coupon-center/operations'],
               ] as Array<[string, string, LucideIcon, string]>).map(([name, detail, Icon, href]) => (
                 <button
                   type="button"
