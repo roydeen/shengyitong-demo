@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import {
+  ArrowLeft,
   ArrowUp,
   BarChart3,
   Bell,
@@ -27,6 +29,7 @@ import {
   Menu,
   MessageSquare,
   Package,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
@@ -56,6 +59,9 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import OperationsDashboard from './OperationsDashboard'
+import CopyableEllipsis from './CopyableEllipsis'
+import { aiBusinessCategoryIcons, aiBusinessCategoryLabels } from './aiBusinessCategories'
+import type { AiBusinessCategory } from './aiBusinessCategories'
 
 type ScenarioKind = '功能类' | '数据报表类' | '操作类' | '预测类' | '营销活动类'
 type FindingTone = 'critical' | 'opportunity' | 'info'
@@ -255,14 +261,14 @@ const springSaladCampaign: MarketingPageArtifact = {
   href: '#/campaigns/spring-salad',
   campaign: '工作日午餐轻食套餐',
   coupon: '满 39 减 8 元午餐券',
-  description: '面向微信私域生成的活动领取页，顾客扫码或点击进入后领券，到店微信支付时自动抵扣，商户可查看领取、核销和支付复盘。',
+  description: '面向微信顾客生成的活动领券页，顾客扫码或点击进入后领券，到店微信支付时自动抵扣，商户可查看领券、用券和收款情况。',
 }
 
 const marketingSimulationSteps: MarketingSimulationStep[] = [
   {
     kind: 'thinking',
     title: '思考摘要 · 拆解经营目标',
-    detail: '识别工作日午餐、微信私域领券、到店支付抵扣和活动复盘四项核心诉求。',
+    detail: '识别工作日午餐、微信领券、到店支付抵扣和活动效果四项核心诉求。',
     waitingText: '正在理解经营目标与活动约束',
   },
   {
@@ -285,7 +291,7 @@ const marketingSimulationSteps: MarketingSimulationStep[] = [
   },
   {
     kind: 'skill',
-    title: '调用 Skill · 私域内容生成',
+    title: '调用文案能力 · 微信内容生成',
     detail: '生成微信群、朋友圈活动文案，以及面向顾客的领券页内容。',
     waitingText: '正在生成营销文案与页面内容',
   },
@@ -331,7 +337,7 @@ const scenarios: Scenario[] = [
     steps: [
       ['分析下午时段表现', '读取近 30 天 14:00–17:00 的订单、人次、实收和堂食人均'],
       ['设计分层产品', '生成单人轻享、双人商务下午茶和 4–6 人会议茶歇三档产品'],
-      ['规划客户开发', '拆分门店内转化、写字楼定向开发和固定主题日三条路径'],
+      ['规划客户开发', '拆分店内再次消费、写字楼定向开发和固定主题日三条路径'],
       ['设置评估指标', '建立下午日均实收、订单数、多人订单占比和企业茶歇订单监控'],
     ],
     summary: '已生成下午茶场景常态化方案。建议优先发展双人商务下午茶和企业会议茶歇，不依赖长期折扣。',
@@ -357,7 +363,7 @@ const scenarios: Scenario[] = [
 
 ### 执行路径
 
-1. **门店内转化：** 午餐结账时展示下午茶场景与会员价，不发大额优惠券。
+1. **带动再次消费：** 午餐结账时展示下午茶场景与会员价，不发大额优惠券。
 2. **企业定向开发：** 建立周边 1 公里企业行政、HR、部门助理和前台联系人清单。
 3. **固定主题日：** 设置商务茶歇日、会员下午茶和双人下午茶，形成固定消费记忆。
 
@@ -409,10 +415,10 @@ const scenarios: Scenario[] = [
     steps: [
       ['校验天气影响', '对比 763 天经营记录中的晴天、多云、小雨和大雨表现'],
       ['设计企业餐产品', '生成单人、分享餐、部门餐和 10 人以上企业餐四档产品'],
-      ['配置触发规则', '当次日午餐时段预报大雨时，于前一日 17:00 创建触达任务'],
-      ['生成触达内容', '突出提前预约、准时送达和公司前台交付，不依赖满减促销'],
+      ['配置启动规则', '当次日午餐时段预报大雨时，于前一日 17:00 创建提醒任务'],
+      ['生成发送内容', '突出提前预约、准时送达和公司前台交付，不依赖满减促销'],
     ],
-    summary: '已生成大雨天气企业外送方案。建议提前沉淀企业联系人，并在预报触发后开放次日预约。',
+    summary: '已生成大雨天气企业外送方案。建议平时积累企业联系人，并在天气预报提示大雨后开放次日预约。',
     creativeOutput: {
       markdown: `## 大雨天气企业外送方案
 
@@ -441,7 +447,7 @@ const scenarios: Scenario[] = [
 3. 生成预约通知，店长确认后发送。
 4. 次日 10:30 截止预约，12:00 前送达公司前台。
 
-### 触达文案
+### 发送文案
 
 > 明天有大雨，午饭不用下楼。杭州西湖店雨天企业餐已开放预约，满 ¥199 免费送至公司前台。10:30 前下单，12:00 前送达。
 
@@ -454,7 +460,7 @@ const scenarios: Scenario[] = [
         tone: 'critical',
         label: '天气影响',
         meta: '历史大雨日',
-        title: '大雨主要影响自然到店，应提前转化为企业预约订单',
+        title: '大雨主要影响自然到店，应提前争取企业预约订单',
         body: '大雨日实收较其他天气低约 32%，核心解决方案应是便利性，而不是临时降价。',
       },
     ],
@@ -483,25 +489,25 @@ const scenarios: Scenario[] = [
     intro: '我会根据领券时间、会员价值和历史响应情况筛选提醒对象，生成发送时间、短信内容和效果预估。',
     steps: [
       ['筛选目标会员', '从 81 名已领未核销会员中识别 42 名符合提醒条件的高意向用户'],
-      ['校验触达条件', '排除已退订、近 24 小时已触达和不在营销授权范围内的会员'],
+      ['检查发送条件', '排除已退订、近 24 小时已联系和未同意接收营销信息的会员'],
       ['生成提醒内容', '短信明确优惠券名称、优惠金额、适用时段和到期日期'],
     ],
-    summary: '已生成午餐券到期提醒方案，目标是以较低触达成本提升午餐券核销率。正式发送前仍需店长确认。',
+    summary: '已生成午餐券到期提醒方案，目标是用较少的短信费用让更多顾客到店用券。正式发送前仍需店长确认。',
     creativeOutput: {
       markdown: `## 午餐券到期提醒方案
 
-已完成用户筛选、触达时机判断和短信内容生成，方案如下：
+已完成用户筛选、发送时间判断和短信内容生成，方案如下：
 
 ### 目标用户
 
 - **待提醒人数：** 42 人
 - **筛选条件：** 已领取“满 39 减 8 元午餐券”、尚未核销、近 30 天有午餐消费记录
-- **已排除：** 近 24 小时已触达、已退订或缺少营销授权的会员
+- **已排除：** 近 24 小时已联系、已退订或未同意接收营销信息的会员
 
 ### 发送安排
 
 - **建议时间：** 今天 10:30
-- **触达渠道：** 营销短信
+- **发送方式：** 营销短信
 
 ### 优惠券信息
 
@@ -517,7 +523,7 @@ const scenarios: Scenario[] = [
 ### 预计效果
 
 - **预计新增核销：** 12–18 单
-- **预计带动 GMV：** ¥780–¥1,200
+- **预计带动营业额：** ¥780–¥1,200
 - **预计短信成本：** ¥2.10`,
     },
     findings: [],
@@ -531,7 +537,7 @@ const scenarios: Scenario[] = [
       ],
       references: [
         ['午餐券领券记录', '128 人领券、47 人核销、81 人未核销', TicketPercent],
-        ['会员营销授权', '已完成触达资格校验', ShieldCheck],
+        ['会员营销授权', '已检查是否可以发送', ShieldCheck],
       ],
     },
   },
@@ -593,7 +599,7 @@ const scenarios: Scenario[] = [
     context: {
       updatedAt: '刚刚',
       permissions: [
-        ['可读取', '门店定位、菜品特色、历史高转化素材'],
+      ['可读取', '门店定位、菜品特色、以往效果较好的内容'],
         ['可生成', '朋友圈文案、小红书笔记、节日海报'],
         ['需批准', '正式发布到外部平台'],
       ],
@@ -667,10 +673,10 @@ const scenarios: Scenario[] = [
     starter: '做朋友圈宣传海报',
     time: '刚刚',
     icon: PenLine,
-    intro: '我会先识别门店定位、客群和平台语气，再分别生成私域、小红书、抖音可直接使用的文案和海报建议。',
+    intro: '我会先识别门店定位、顾客特点和平台语气，再分别生成微信、小红书、抖音可直接使用的文案和海报建议。',
     steps: [
       ['识别商户性质', '轻餐门店，核心卖点是低负担午餐、现做食材和会员复购'],
-      ['匹配平台语气', '朋友圈偏熟人转化，小红书偏种草笔记，抖音偏同城短视频钩子'],
+      ['匹配平台语气', '朋友圈偏熟人分享，小红书偏体验推荐，抖音偏同城短视频开场'],
       ['输出文案与海报', '每个平台给出标题、正文、行动引导和画面重点'],
     ],
     summary: '已生成 3 组平台化文案。朋友圈强调“今天吃轻一点”的即时下单，小红书强调真实配料和低负担体验，抖音强调同城午餐场景和限时福利。',
@@ -707,7 +713,7 @@ const scenarios: Scenario[] = [
       {
         tone: 'info',
         label: '朋友圈',
-        meta: '私域转化',
+        meta: '微信分享',
         title: '熟人关系里要少讲概念，多给即时理由',
         body: '建议文案围绕“今天午餐不想油腻，就点一份清爽轻食”。海报突出套餐实拍、配送时间和会员券，按钮文案用“领券下单”。',
         evidence: [
@@ -718,7 +724,7 @@ const scenarios: Scenario[] = [
       {
         tone: 'opportunity',
         label: '小红书',
-        meta: '种草笔记',
+        meta: '体验推荐',
         title: '用食材透明和热量友好建立信任',
         body: '建议标题用“西湖边上班族午餐新选择”。正文拆成食材、口味、饱腹感、价格四段，配图选择俯拍套餐和近景食材。',
       },
@@ -732,7 +738,7 @@ const scenarios: Scenario[] = [
     ],
     table: [
       ['朋友圈', '轻松熟人语气', '套餐实拍 + 领券入口', '可直接发布'],
-      ['小红书', '真实体验种草', '食材细节 + 价格口径', '适合收藏'],
+      ['小红书', '真实体验推荐', '食材细节 + 价格说明', '适合收藏'],
       ['抖音', '同城短视频钩子', '出餐效率 + 限时福利', '适合投流测试'],
       ['门店海报', '统一主视觉', '产品图 + 优惠券', '可下载'],
     ],
@@ -742,10 +748,10 @@ const scenarios: Scenario[] = [
       permissions: [
         ['可读取', '门店定位、菜品卖点、历史活动'],
         ['可生成', '朋友圈文案、小红书笔记、抖音脚本、海报'],
-        ['需批准', '自动发布、投放预算、短信触达'],
+        ['需批准', '自动发布、推广预算、短信发送'],
       ],
       references: [
-        ['平台内容风格库', '私域、小红书、抖音', PenLine],
+        ['平台内容风格库', '微信、小红书、抖音', PenLine],
         ['门店菜品素材', '轻食套餐、会员券', ImageIcon],
       ],
     },
@@ -760,13 +766,13 @@ const scenarios: Scenario[] = [
     icon: Megaphone,
     intro: '我会把活动目标、客群、优惠券、领取页、微信支付核销和复盘报表串成一条链路，先生成可预览方案，发布动作仍需商户确认。',
     steps: [
-      ['理解一句话目标', '识别“工作日午餐、微信私域、领券、到店支付抵扣、复盘”五个关键意图'],
+      ['理解一句话目标', '识别“工作日午餐、微信领券、到店支付抵扣、查看活动效果”四个关键意图'],
       ['生成活动方案', '锁定西湖店周边上班族和老会员，主推 11:00-13:00 轻食套餐'],
       ['配置优惠券草案', '满 39 减 8，微信领取，工作日午餐时段可用，到店微信支付自动抵扣'],
-      ['生成领取页面', '生成手机端活动页、分享链接和二维码，可投放到微信群、朋友圈和门店物料'],
-      ['建立追踪复盘', '记录访问、领券、核销、支付回调和优惠抵扣金额，沉淀活动报表'],
+      ['生成领取页面', '生成手机端活动页、分享链接和二维码，可分享到微信群、朋友圈和门店物料'],
+      ['记录活动效果', '记录浏览、领券、用券、实际收款和优惠金额，生成活动报表'],
     ],
-    summary: '已生成“工作日午餐会员领券页”草案，并把优惠券、微信领取、支付自动抵扣、日志和复盘报表串成完整业务链路。正式发券库存、触达会员和上线发布仍需店长确认。',
+    summary: '已生成“工作日午餐会员领券页”草案，并把优惠券、微信领取、支付自动抵扣、记录和活动报表串联起来。正式发券、发送给会员和上线发布仍需店长确认。',
     creativeOutput: {
       markdown: `## 工作日午餐营销活动
 
@@ -776,7 +782,7 @@ const scenarios: Scenario[] = [
 
 - **目标人群：** 杭州西湖店周边上班族、老会员、近 30 天未复购顾客
 - **活动时间：** 工作日 11:00-14:00
-- **核心目的：** 拉动午餐时段转化，并把顾客沉淀到微信私域
+- **核心目的：** 增加午餐时段消费，并把顾客留在微信里，方便下次联系
 
 ### 活动内容
 
@@ -785,7 +791,7 @@ const scenarios: Scenario[] = [
 - **优惠设置：** 满39减8元午餐券
 - **领取方式：** 顾客通过微信内 H5 / 小程序入口领取，券进入微信卡包
 
-### 私域转发文案
+### 微信转发文案
 
 今天午餐想吃清爽一点，可以试试杭州西湖店的轻食套餐。
 工作日午餐券已上线，满 39 减 8，数量有限，领完可到店或下单使用。
@@ -798,7 +804,7 @@ const scenarios: Scenario[] = [
 
 ### 运营建议
 
-这类活动适合作为小商户私域营销的标准入口：先用轻量优惠券验证领券和核销转化，再根据复盘结果决定是否扩大投放。`,
+这类活动适合小店从微信里开始做：先用小额优惠券看看有多少人领券、到店用券，再根据实际效果决定是否继续扩大。`,
     },
     findings: [
       {
@@ -818,7 +824,7 @@ const scenarios: Scenario[] = [
         label: '经营复盘',
         meta: '领取 / 核销 / 实付',
         title: '活动价值不止是生成页面，而是能追踪到支付结果',
-        body: '顾客领券后到店微信支付，系统能记录抵扣金额、实付金额和活动来源。商户在盛意旺 APP 里看到的不只是订单，还能看到活动是否带来真实转化。',
+        body: '顾客领券后到店微信支付，系统能记录抵扣金额、实付金额和活动来源。商户在盛意旺 APP 里看到的不只是订单，还能看到活动是否真正带来了顾客消费。',
       },
     ],
     marketingPage: springSaladCampaign,
@@ -827,8 +833,8 @@ const scenarios: Scenario[] = [
       updatedAt: '11:08',
       permissions: [
         ['可读取', '菜品、门店、会员、优惠券模板、支付订单'],
-        ['可生成', '活动页、私域文案、分享二维码、复盘报表'],
-        ['需批准', '正式发券、触达会员、上线发布、预算调整'],
+        ['可生成', '活动页、微信文案、分享二维码、活动报表'],
+        ['需批准', '正式发券、发送给会员、上线发布、预算调整'],
       ],
       references: [
         ['营销页组件库', '首屏、卖点、领券模块', LayoutDashboard],
@@ -996,7 +1002,7 @@ const scenarios: Scenario[] = [
         ['可读取', '门店、菜品卖点、活动模板、优惠券模板'],
         ['可生成', '朋友圈文案、小红书文案、抖音脚本、海报图片'],
         ['可调用', '天财商龙活动创建接口、优惠券基础信息接口、活动券关联接口'],
-        ['需批准', '正式发布活动、批量触达会员、修改天财商龙库存和券规则'],
+        ['需批准', '正式发布活动、批量发送给会员、修改天财商龙库存和券规则'],
       ],
       references: [
         ['天财商龙活动接口', '活动名称、门店、时间、渠道', Database],
@@ -1300,6 +1306,7 @@ const generatedAssistantSessions: Record<string, HistorySession> = {
   'national-day-copy': nationalDayCopySession,
   'afternoon-tea-growth': afternoonTeaGrowthSession,
   'rain-enterprise-delivery': rainEnterpriseDeliverySession,
+  'campaign-publish-pending': memberRecallSession,
 }
 
 const guidedSessionKeywords: Record<string, string[]> = {
@@ -1396,7 +1403,7 @@ function ReportPage({ report, pinned, onPin }: { report: ReportArtifact; pinned:
             <div className="report-table" role="table" aria-label={report.title}>
               <div role="row"><span>渠道</span><span>实收</span><span>毛利率</span><span>退款率</span><span>判断</span></div>
               {report.rows.map((row) => (
-                <div role="row" key={row[0]}>{row.map((cell) => <span key={cell}>{cell}</span>)}</div>
+                <div role="row" key={row[0]}>{row.map((cell, cellIndex) => <span key={`${cell}-${cellIndex}`}><CopyableEllipsis value={cell} /></span>)}</div>
               ))}
             </div>
           </div>
@@ -1478,23 +1485,34 @@ function StatusBadge({ value }: { value: string }) {
 type AiBusinessInsight = {
   id: string
   tone: 'critical' | 'warning' | 'opportunity'
-  category: string
+  category: AiBusinessCategory
+  signalType: 'metric_anomaly' | 'capacity_idle' | 'weather_event' | 'lifecycle_change' | 'calendar_event' | 'task_pending'
+  objective: 'increase_redemption' | 'improve_retention' | 'fill_off_peak' | 'prevent_loss' | 'increase_exposure' | 'complete_execution'
+  actionType: 'create_campaign' | 'send_coupon_reminder' | 'generate_social_content' | 'resume_task'
+  urgency: 'immediate' | 'today' | 'this_week' | 'planned'
+  riskLevel: 'draft' | 'write'
+  skill: 'campaign-planning' | 'coupon-reminder' | 'member-segmentation' | 'social-content' | 'campaign-execution'
   title: string
   summary: string
   impact: string
   evidence: string[]
   recommendation: string
   actionLabel: string
-  route: string
-  routeLabel: string
-  Icon: LucideIcon
+  route?: string
+  routeLabel?: string
 }
 
 const aiBusinessInsights: AiBusinessInsight[] = [
   {
     id: 'afternoon-tea-growth',
     tone: 'opportunity',
-    category: '时段机会',
+    category: 'growth_opportunity',
+    signalType: 'capacity_idle',
+    objective: 'fill_off_peak',
+    actionType: 'create_campaign',
+    urgency: 'this_week',
+    riskLevel: 'draft',
+    skill: 'campaign-planning',
     title: '下午时段已有稳定需求，可打造常态化茶歇场景',
     summary: '近 30 天下午时段已有稳定订单，适合重点发展双人商务下午茶与企业会议茶歇。',
     impact: '目标将下午时段日均实收提升至 ¥1,600–¥1,800',
@@ -1503,63 +1521,97 @@ const aiBusinessInsights: AiBusinessInsight[] = [
     actionLabel: '生成下午茶方案',
     route: '#/coupon-center/operations',
     routeLabel: '查看经营数据',
-    Icon: Coffee,
   },
   {
     id: 'rain-enterprise-delivery',
     tone: 'warning',
-    category: '天气预警',
+    category: 'growth_opportunity',
+    signalType: 'weather_event',
+    objective: 'prevent_loss',
+    actionType: 'create_campaign',
+    urgency: 'today',
+    riskLevel: 'draft',
+    skill: 'campaign-planning',
     title: '大雨天气显著影响自然到店和营业实收',
     summary: '历史大雨日经营表现明显低于其他天气，适合用企业预约外送承接流失订单。',
     impact: '首阶段争取挽回 20% 的雨天收入缺口',
     evidence: ['历史大雨日经营表现下降', '周边写字楼具备集中配送条件', '可提前一天触发预约'],
-    recommendation: '提前沉淀周边企业联系人，在次日午餐预报大雨时自动生成预约触达任务。',
+    recommendation: '提前积累周边企业联系人，在次日午餐预报大雨时自动生成预约提醒任务。',
     actionLabel: '生成天气触发方案',
     route: '#/coupon-center/operations',
     routeLabel: '查看经营数据',
-    Icon: CloudRain,
   },
   {
     id: 'lunch-redemption',
     tone: 'critical',
-    category: '经营异常',
+    category: 'operation_alert',
+    signalType: 'metric_anomaly',
+    objective: 'increase_redemption',
+    actionType: 'send_coupon_reminder',
+    urgency: 'immediate',
+    riskLevel: 'write',
+    skill: 'coupon-reminder',
     title: '午餐券有 81 人领取后尚未核销',
     summary: '工作日午餐券已领取 128 人、核销 47 人；81 名未核销用户中有 42 人符合提醒条件。',
-    impact: '预计可新增核销 12–18 单，带动 GMV ¥780–¥1,200',
+    impact: '预计可新增用券 12–18 单，带动营业额 ¥780–¥1,200',
     evidence: ['已领券 128 人', '已核销 47 人', '符合提醒条件 42 人'],
     recommendation: '今天 10:30 向高意向的已领未核销会员发送到期提醒，短信注明券名称、满减金额、适用时段和到期日期。',
     actionLabel: '生成提醒方案',
     route: '#/coupon-center/claims?filter=reminder',
     routeLabel: '查看领券用户',
-    Icon: TicketPercent,
   },
   {
     id: 'member-sleeping',
     tone: 'warning',
-    category: '会员机会',
+    category: 'member_operation',
+    signalType: 'lifecycle_change',
+    objective: 'improve_retention',
+    actionType: 'create_campaign',
+    urgency: 'this_week',
+    riskLevel: 'draft',
+    skill: 'member-segmentation',
     title: '186 名高复购会员正在进入沉睡期',
     summary: '这批会员过去常在工作日午餐消费，但最近 30 天没有到店。',
-    impact: '预计可召回 22–31 人，带动 GMV ¥1,800–¥2,600',
+    impact: '预计可召回 22–31 人，带动营业额 ¥1,800–¥2,600',
     evidence: ['目标会员 186 人', '历史月均消费 2.7 次', '午餐偏好占比 72%'],
     recommendation: '建议创建工作日午餐活动，发放满 39 减 8 元券，并限制工作日午餐时段使用。',
     actionLabel: '生成召回方案',
     route: '#/coupon-center/members',
     routeLabel: '查看目标会员',
-    Icon: Users,
   },
   {
     id: 'national-day-copy',
     tone: 'opportunity',
-    category: '节日营销',
+    category: 'marketing_event',
+    signalType: 'calendar_event',
+    objective: 'increase_exposure',
+    actionType: 'generate_social_content',
+    urgency: 'planned',
+    riskLevel: 'draft',
+    skill: 'social-content',
     title: '国庆节到了，可以提前发布节日内容',
     summary: '国庆期间出游、家庭聚餐和朋友小聚需求增加，适合提前在朋友圈和小红书进行内容预热。',
     impact: '提前完成节日内容准备，承接国庆期间的到店关注和聚餐需求',
     evidence: ['国庆假期临近', '家庭聚餐与朋友小聚需求增加', '朋友圈和小红书适合提前预热'],
     recommendation: '建议生成一组国庆节朋友圈和小红书文案，并配套一张 3:4 节日海报，用于假期前预热。',
     actionLabel: '生成国庆文案',
-    route: '#',
-    routeLabel: '查看已有文案',
-    Icon: PenLine,
+  },
+  {
+    id: 'campaign-publish-pending',
+    tone: 'warning',
+    category: 'execution_followup',
+    signalType: 'task_pending',
+    objective: 'complete_execution',
+    actionType: 'resume_task',
+    urgency: 'today',
+    riskLevel: 'write',
+    skill: 'campaign-execution',
+    title: '工作日午餐活动已生成，仍待确认发布',
+    summary: '活动方案、满 39 减 8 元午餐券和领券页均已生成，目前仍处于待确认状态。',
+    impact: '完成确认发布后，目标会员才能看到活动，并开始记录实际效果',
+    evidence: ['活动方案已生成', '午餐券批次已创建', '领券页尚未正式发布'],
+    recommendation: '核对活动时间、券库存和领券页内容后继续发布，正式发送给会员前保留店长确认。',
+    actionLabel: '继续发布活动',
   },
 ]
 
@@ -1576,17 +1628,17 @@ function AiHomeBrief({ insights, onOpenInsight }: { insights: AiBusinessInsight[
       </div>
       <div className="ai-home-insight-grid">
         {insights.map((insight) => {
-          const Icon = insight.Icon
+          const Icon = aiBusinessCategoryIcons[insight.category]
           return (
             <button
-              className={`ai-home-insight ${insight.tone}`}
+              className={`ai-home-insight ${insight.tone} ${insight.category}`}
               type="button"
               key={insight.id}
               onClick={() => onOpenInsight(insight.id)}
             >
               <span className="ai-home-insight-icon"><Icon size={17} /></span>
               <span className="ai-home-insight-copy">
-                <small>{insight.category}</small>
+                <small>{aiBusinessCategoryLabels[insight.category]}</small>
                 <strong>{insight.title}</strong>
                 <span className="ai-home-insight-summary">{insight.summary}</span>
                 <em>{insight.impact}</em>
@@ -1598,6 +1650,30 @@ function AiHomeBrief({ insights, onOpenInsight }: { insights: AiBusinessInsight[
       </div>
     </section>
   )
+}
+
+type AiFabPosition = { x: number; y: number }
+
+const aiFabPositionStorageKey = 'shengyitong:ai-business-fab-position'
+
+const getInitialAiFabPosition = (): AiFabPosition | null => {
+  try {
+    const storedPosition = JSON.parse(window.localStorage.getItem(aiFabPositionStorageKey) ?? 'null')
+    if (Number.isFinite(storedPosition?.x) && Number.isFinite(storedPosition?.y)) {
+      return { x: storedPosition.x, y: storedPosition.y }
+    }
+  } catch {
+    // Local storage can be unavailable in privacy-restricted browser contexts.
+  }
+  return null
+}
+
+const clampAiFabPosition = (position: AiFabPosition, width: number, height: number): AiFabPosition => {
+  const margin = 12
+  return {
+    x: Math.min(Math.max(position.x, margin), Math.max(margin, window.innerWidth - width - margin)),
+    y: Math.min(Math.max(position.y, margin), Math.max(margin, window.innerHeight - height - margin)),
+  }
 }
 
 function AiBusinessAssistant({
@@ -1625,6 +1701,20 @@ function AiBusinessAssistant({
   onSelectInsight: (id: string) => void
   onConversationGenerated?: (insight: AiBusinessInsight) => void
 }) {
+  const fabRef = useRef<HTMLDivElement>(null)
+  const fabDragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+    lastX: number
+    lastY: number
+    moved: boolean
+  } | null>(null)
+  const suppressFabClickRef = useRef(false)
+  const [fabPosition, setFabPosition] = useState<AiFabPosition | null>(getInitialAiFabPosition)
+  const [fabDragging, setFabDragging] = useState(false)
   const [showNudge, setShowNudge] = useState(() => {
     try {
       return window.sessionStorage.getItem('shengyitong:ai-business-nudge-seen') !== 'true'
@@ -1633,22 +1723,34 @@ function AiBusinessAssistant({
     }
   })
   const [actionStates, setActionStates] = useState<Record<string, 'ready' | 'running' | 'done'>>({})
-  const selectedInsight = insights.find((item) => item.id === selectedInsightId) ?? insights[0] ?? aiBusinessInsights[0]
+  const [categoryFilter, setCategoryFilter] = useState<AiBusinessCategory | 'all'>('all')
+  const filteredInsights = useMemo(
+    () => categoryFilter === 'all' ? insights : insights.filter((insight) => insight.category === categoryFilter),
+    [categoryFilter, insights],
+  )
+  const selectedInsight = filteredInsights.find((item) => item.id === selectedInsightId) ?? filteredInsights[0] ?? insights[0] ?? aiBusinessInsights[0]
   const actionState = actionStates[selectedInsight.id] ?? 'ready'
   const unreadCount = allRead ? 0 : insights.length
-  const issueCount = insights.filter((insight) => insight.tone !== 'opportunity').length
-  const opportunityCount = insights.length - issueCount
-  const summaryParts = [issueCount ? `${issueCount} 个经营问题` : '', opportunityCount ? `${opportunityCount} 个增长机会` : ''].filter(Boolean)
+  const summaryGroups = (Object.keys(aiBusinessCategoryLabels) as AiBusinessCategory[])
+    .map((category) => {
+      const count = insights.filter((insight) => insight.category === category).length
+      return { category, count, label: aiBusinessCategoryLabels[category] }
+    })
+    .filter((group) => group.count > 0)
 
   useEffect(() => {
     if (open && minimized) onMinimizedChange(false)
   }, [minimized, onMinimizedChange, open])
 
   useEffect(() => {
-    if (insights.length && !insights.some((insight) => insight.id === selectedInsightId)) {
-      onSelectInsight(insights[0].id)
+    if (categoryFilter !== 'all' && !filteredInsights.length) {
+      setCategoryFilter('all')
+      return
     }
-  }, [insights, onSelectInsight, selectedInsightId])
+    if (filteredInsights.length && !filteredInsights.some((insight) => insight.id === selectedInsightId)) {
+      onSelectInsight(filteredInsights[0].id)
+    }
+  }, [categoryFilter, filteredInsights, onSelectInsight, selectedInsightId])
 
   useEffect(() => {
     if (!showNudge) return
@@ -1662,6 +1764,28 @@ function AiBusinessAssistant({
     }, 9000)
     return () => window.clearTimeout(timer)
   }, [showNudge])
+
+  useEffect(() => {
+    const keepFabInsideViewport = () => {
+      setFabPosition((currentPosition) => {
+        if (!currentPosition) return currentPosition
+        const width = fabRef.current?.offsetWidth || (window.innerWidth <= 620 ? 50 : 54)
+        const height = fabRef.current?.offsetHeight || (window.innerWidth <= 620 ? 50 : 54)
+        const nextPosition = clampAiFabPosition(currentPosition, width, height)
+        if (nextPosition.x === currentPosition.x && nextPosition.y === currentPosition.y) return currentPosition
+        try {
+          window.localStorage.setItem(aiFabPositionStorageKey, JSON.stringify(nextPosition))
+        } catch {
+          // Local storage can be unavailable in privacy-restricted browser contexts.
+        }
+        return nextPosition
+      })
+    }
+
+    keepFabInsideViewport()
+    window.addEventListener('resize', keepFabInsideViewport)
+    return () => window.removeEventListener('resize', keepFabInsideViewport)
+  }, [])
 
   const openAssistant = (id = selectedInsight.id) => {
     onSelectInsight(id)
@@ -1695,6 +1819,69 @@ function AiBusinessAssistant({
     }
   }
 
+  const startFabDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return
+    const rect = fabRef.current?.getBoundingClientRect()
+    if (!rect) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    fabDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: rect.left,
+      originY: rect.top,
+      lastX: rect.left,
+      lastY: rect.top,
+      moved: false,
+    }
+  }
+
+  const moveFab = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const dragState = fabDragRef.current
+    if (!dragState || dragState.pointerId !== event.pointerId) return
+    const deltaX = event.clientX - dragState.startX
+    const deltaY = event.clientY - dragState.startY
+    if (!dragState.moved && Math.hypot(deltaX, deltaY) < 5) return
+    if (!dragState.moved) {
+      dragState.moved = true
+      setFabDragging(true)
+      dismissNudge()
+    }
+    event.preventDefault()
+    const width = fabRef.current?.offsetWidth || 54
+    const height = fabRef.current?.offsetHeight || 54
+    const nextPosition = clampAiFabPosition({
+      x: dragState.originX + deltaX,
+      y: dragState.originY + deltaY,
+    }, width, height)
+    dragState.lastX = nextPosition.x
+    dragState.lastY = nextPosition.y
+    setFabPosition(nextPosition)
+  }
+
+  const finishFabDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const dragState = fabDragRef.current
+    if (!dragState || dragState.pointerId !== event.pointerId) return
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    if (dragState.moved) {
+      const nextPosition = { x: dragState.lastX, y: dragState.lastY }
+      setFabPosition(nextPosition)
+      suppressFabClickRef.current = true
+      window.setTimeout(() => {
+        suppressFabClickRef.current = false
+      }, 0)
+      try {
+        window.localStorage.setItem(aiFabPositionStorageKey, JSON.stringify(nextPosition))
+      } catch {
+        // Local storage can be unavailable in privacy-restricted browser contexts.
+      }
+    }
+    fabDragRef.current = null
+    setFabDragging(false)
+  }
+
   const markAllRead = () => {
     setShowNudge(false)
     onMarkAllRead()
@@ -1703,6 +1890,30 @@ function AiBusinessAssistant({
     } catch {
       // Session storage can be unavailable in privacy-restricted browser contexts.
     }
+  }
+
+  const selectCategory = (category: AiBusinessCategory) => {
+    setCategoryFilter(category)
+    const firstInsight = insights.find((insight) => insight.category === category)
+    if (firstInsight) onSelectInsight(firstInsight.id)
+  }
+
+  const showAllInsights = () => {
+    setCategoryFilter('all')
+    if (insights.length) onSelectInsight(insights[0].id)
+  }
+
+  const openSuggestionHistory = () => {
+    const suggestionUrl = new URL(window.location.href)
+    suggestionUrl.hash = '#/suggestions'
+    window.open(suggestionUrl.toString(), '_blank', 'noopener,noreferrer')
+  }
+
+  const markInsightRead = (insight: AiBusinessInsight) => {
+    const nextInsight = filteredInsights.find((item) => item.id !== insight.id)
+      ?? insights.find((item) => item.id !== insight.id)
+    if (nextInsight) onSelectInsight(nextInsight.id)
+    onInsightHandled(insight)
   }
 
   const runAiAction = () => {
@@ -1740,30 +1951,59 @@ function AiBusinessAssistant({
           ) : (
             <>
               <div className="ai-business-summary">
-                <span>今日发现</span>
-                <strong>{summaryParts.join('，')}</strong>
-                <small>仅在问题值得处理时提醒你</small>
+                <div className="ai-business-summary-head">
+                  <span>今日发现</span>
+                  <div>
+                    <strong>{insights.length} 条建议</strong>
+                    <button type="button" onClick={openSuggestionHistory}>显示所有建议</button>
+                  </div>
+                </div>
+                <div className="ai-business-summary-categories">
+                  <button
+                    className={`ai-business-summary-category all ${categoryFilter === 'all' ? 'active' : ''}`}
+                    type="button"
+                    aria-pressed={categoryFilter === 'all'}
+                    onClick={showAllInsights}
+                  >
+                    全部<b>{insights.length}</b>
+                  </button>
+                  {summaryGroups.map((group) => (
+                    <button
+                      className={`ai-business-summary-category ${group.category} ${categoryFilter === group.category ? 'active' : ''}`}
+                      type="button"
+                      aria-pressed={categoryFilter === group.category}
+                      key={group.category}
+                      onClick={() => selectCategory(group.category)}
+                    >
+                      <i />{group.label}<b>{group.count}</b>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="ai-business-insight-tabs" role="list" aria-label="经营问题">
-                {insights.map((insight) => {
-                  const Icon = insight.Icon
+                {filteredInsights.map((insight) => {
+                  const Icon = aiBusinessCategoryIcons[insight.category]
                   return (
-                    <button
-                      className={`${insight.tone} ${insight.id === selectedInsight.id ? 'active' : ''}`}
-                      type="button"
-                      key={insight.id}
-                      onClick={() => onSelectInsight(insight.id)}
-                    >
-                      <span><Icon size={15} /></span>
-                      <div><small>{insight.category}</small><strong>{insight.title}</strong></div>
-                    </button>
+                    <div className={`ai-business-insight-row ${insight.category} ${insight.id === selectedInsight.id ? 'active' : ''}`} role="listitem" key={insight.id}>
+                      <button
+                        className={`ai-business-insight-select ${insight.tone}`}
+                        type="button"
+                        onClick={() => onSelectInsight(insight.id)}
+                      >
+                        <span><Icon size={15} /></span>
+                        <div><small>{aiBusinessCategoryLabels[insight.category]}</small><strong>{insight.title}</strong></div>
+                      </button>
+                      <button className="ai-business-insight-read" type="button" onClick={() => markInsightRead(insight)} aria-label={`将“${insight.title}”标为已读`}>
+                        <Check size={13} /><span>已读</span>
+                      </button>
+                    </div>
                   )
                 })}
               </div>
 
               <section className={`ai-business-detail ${selectedInsight.tone}`}>
-                <span className="ai-business-detail-label">{selectedInsight.category}</span>
+                <span className="ai-business-detail-label">{aiBusinessCategoryLabels[selectedInsight.category]}</span>
                 <h2>{selectedInsight.title}</h2>
                 <p>{selectedInsight.summary}</p>
 
@@ -1787,7 +2027,7 @@ function AiBusinessAssistant({
                     {actionState === 'running' ? <LoaderCircle size={16} /> : <Check size={16} />}
                     <div>
                       <strong>{actionState === 'running' ? '小意正在生成' : '执行方案已生成'}</strong>
-                      <small>{actionState === 'running' ? '正在匹配目标用户、营销规则和触达内容…' : '已完成对象筛选和内容生成，等待你确认发布。'}</small>
+                      <small>{actionState === 'running' ? '正在匹配目标顾客、活动规则和发送内容…' : '已完成顾客筛选和内容生成，等待你确认发布。'}</small>
                     </div>
                   </div>
                 )}
@@ -1796,13 +2036,13 @@ function AiBusinessAssistant({
           )}
         </div>
 
-        {!allRead && !!insights.length && <footer>
-          <button type="button" className="ai-business-secondary" onClick={() => {
+        {!allRead && !!insights.length && <footer className={selectedInsight.route && selectedInsight.routeLabel ? '' : 'single-action'}>
+          {selectedInsight.route && selectedInsight.routeLabel && <button type="button" className="ai-business-secondary" onClick={() => {
             onOpenChange(false)
-            window.location.hash = selectedInsight.route
+            window.location.hash = selectedInsight.route ?? ''
           }}>
             <Eye size={15} />{selectedInsight.routeLabel}
-          </button>
+          </button>}
           <button type="button" className="ai-business-primary" disabled={actionState === 'running'} onClick={runAiAction}>
             {actionState === 'running' ? <LoaderCircle size={15} /> : actionState === 'done' ? <Check size={15} /> : <Sparkles size={15} />}
             {actionState === 'ready' ? selectedInsight.actionLabel : actionState === 'running' ? '正在生成' : '方案待确认'}
@@ -1821,7 +2061,11 @@ function AiBusinessAssistant({
       )}
 
       {!open && !minimized && (
-        <div className="ai-business-fab-shell">
+        <div
+          ref={fabRef}
+          className={`ai-business-fab-shell${fabPosition ? ' is-positioned' : ''}${fabDragging ? ' is-dragging' : ''}`}
+          style={fabPosition ? { left: fabPosition.x, top: fabPosition.y } : undefined}
+        >
           <button
             className="ai-business-fab-hide"
             type="button"
@@ -1836,9 +2080,19 @@ function AiBusinessAssistant({
             type="button"
             aria-label={unreadCount ? `打开小意，有 ${unreadCount} 条经营建议` : '打开小意'}
             title="小意"
-            onClick={() => openAssistant()}
+            onPointerDown={startFabDrag}
+            onPointerMove={moveFab}
+            onPointerUp={finishFabDrag}
+            onPointerCancel={finishFabDrag}
+            onClick={() => {
+              if (suppressFabClickRef.current) {
+                suppressFabClickRef.current = false
+                return
+              }
+              openAssistant()
+            }}
           >
-            <img src={assetUrl('shengyitong-chat-robot.png')} alt="" />
+            <img src={assetUrl('shengyitong-chat-robot.png')} alt="" draggable={false} />
             {!!unreadCount && <b>{unreadCount}</b>}
           </button>
         </div>
@@ -1859,6 +2113,233 @@ function AiAssistantDockButton({ onClick, unreadCount, className = '' }: { onCli
       <img src={assetUrl('shengyitong-chat-robot.png')} alt="" />
       {!!unreadCount && <b>{unreadCount}</b>}
     </button>
+  )
+}
+
+function SuggestionHistoryPage({
+  readInsightIds,
+  allRead,
+  onMarkRead,
+}: {
+  readInsightIds: string[]
+  allRead: boolean
+  onMarkRead: (insight: AiBusinessInsight) => void
+}) {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<AiBusinessCategory | 'all'>('all')
+  const isInsightRead = (insight: AiBusinessInsight) => allRead || readInsightIds.includes(insight.id)
+  const unreadCount = aiBusinessInsights.filter((insight) => !isInsightRead(insight)).length
+  const readCount = aiBusinessInsights.length - unreadCount
+  const filteredInsights = aiBusinessInsights.filter((insight) => {
+    const matchesStatus = statusFilter === 'all'
+      || (statusFilter === 'read' ? isInsightRead(insight) : !isInsightRead(insight))
+    const matchesCategory = categoryFilter === 'all' || insight.category === categoryFilter
+    return matchesStatus && matchesCategory
+  })
+
+  return (
+    <div className="suggestion-history-page">
+      <header className="suggestion-history-topbar">
+        <button type="button" onClick={() => { window.location.hash = '' }}><ArrowLeft size={18} />返回首页</button>
+        <div><Store size={16} /><span>杭州西湖店</span></div>
+      </header>
+
+      <main className="suggestion-history-main">
+        <div className="suggestion-history-heading">
+          <div>
+            <span><Sparkles size={15} />小意建议中心</span>
+            <h1>所有建议</h1>
+            <p>集中查看当前与历史建议，并按处理状态和经营分类进行筛选。</p>
+          </div>
+          <div className="suggestion-history-heading-count"><strong>{aiBusinessInsights.length}</strong><span>累计建议</span></div>
+        </div>
+
+        <section className="suggestion-history-stats" aria-label="建议统计">
+          <div><span>全部建议</span><strong>{aiBusinessInsights.length}</strong><small>当前演示周期累计</small></div>
+          <div><span>未读建议</span><strong>{unreadCount}</strong><small>仍在小意提醒中</small></div>
+          <div><span>已读建议</span><strong>{readCount}</strong><small>保留在历史记录中</small></div>
+        </section>
+
+        <section className="suggestion-history-filters" aria-label="建议筛选">
+          <div className="suggestion-history-status-filter">
+            {([
+              ['all', '全部状态', aiBusinessInsights.length],
+              ['unread', '未读', unreadCount],
+              ['read', '已读', readCount],
+            ] as const).map(([value, label, count]) => (
+              <button className={statusFilter === value ? 'active' : ''} type="button" key={value} onClick={() => setStatusFilter(value)}>
+                {label}<b>{count}</b>
+              </button>
+            ))}
+          </div>
+          <div className="suggestion-history-category-filter">
+            <button className={categoryFilter === 'all' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('all')}>全部分类</button>
+            {(Object.keys(aiBusinessCategoryLabels) as AiBusinessCategory[]).map((category) => (
+              <button className={`${category} ${categoryFilter === category ? 'active' : ''}`} type="button" key={category} onClick={() => setCategoryFilter(category)}>
+                <i />{aiBusinessCategoryLabels[category]}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="suggestion-history-list" aria-label="建议记录">
+          {filteredInsights.length ? filteredInsights.map((insight) => {
+            const Icon = aiBusinessCategoryIcons[insight.category]
+            const read = isInsightRead(insight)
+            return (
+              <article className={`suggestion-history-card ${insight.tone} ${read ? 'read' : 'unread'}`} key={insight.id}>
+                <div className="suggestion-history-card-icon"><Icon size={19} /></div>
+                <div className="suggestion-history-card-content">
+                  <div className="suggestion-history-card-meta">
+                    <span className={`category ${insight.category}`}>{aiBusinessCategoryLabels[insight.category]}</span>
+                    <span className={`status ${read ? 'read' : 'unread'}`}>{read ? '已读' : '未读'}</span>
+                    <time>今日 09:30</time>
+                  </div>
+                  <h2>{insight.title}</h2>
+                  <p>{insight.summary}</p>
+                  <div className="suggestion-history-card-evidence">
+                    {insight.evidence.map((item) => <span key={item}>{item}</span>)}
+                  </div>
+                  <div className="suggestion-history-card-impact"><CircleDollarSign size={15} /><span>{insight.impact}</span></div>
+                </div>
+                <div className="suggestion-history-card-actions">
+                  {insight.route && insight.routeLabel && <button type="button" onClick={() => { window.location.hash = insight.route ?? '' }}><Eye size={14} />{insight.routeLabel}</button>}
+                  {!read && <button className="primary" type="button" onClick={() => onMarkRead(insight)}><Check size={14} />标为已读</button>}
+                </div>
+              </article>
+            )
+          }) : (
+            <div className="suggestion-history-empty"><Search size={20} /><strong>没有符合条件的建议</strong><span>可以切换状态或分类继续查看。</span></div>
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}
+
+type ColorSchemeId = 'blue' | 'jade' | 'coral' | 'amber' | 'cloud' | 'violet'
+
+const colorSchemes: Array<{
+  id: ColorSchemeId
+  name: string
+  description: string
+  colors: string[]
+}> = [
+  { id: 'blue', name: '盛意通蓝', description: '清爽、专业，保持当前配色', colors: ['#1976ff', '#071b4a', '#edf6ff'] },
+  { id: 'jade', name: '西湖龙井绿', description: '沁绿、初绽与柔碧，清新柔和', colors: ['#8ec373', '#e9ffca', '#c9dcc8'] },
+  { id: 'coral', name: '中国红', description: '正红、鎏金与象牙白，更有东方质感', colors: ['#c51d24', '#c9942e', '#fff7e8'] },
+  { id: 'amber', name: '大富大贵金', description: '深金作为主色，浅金提亮，深棕稳住文字层级', colors: ['#9b6508', '#f2c966', '#362b22'] },
+  { id: 'cloud', name: '云端之上兰', description: '云雾、宸静、悠恬与遐安，轻盈通透', colors: ['#cef2ff', '#a8e8ff', '#7eddff', '#5d92e4'] },
+  { id: 'violet', name: '烟光凝紫', description: '烟岚、泮霞、凝岑与紫涧，柔和雅致', colors: ['#fef0ff', '#e0d3ff', '#c5b8e8', '#d1cff9'] },
+]
+
+const colorSchemeStorageKey = 'shengyitong:color-scheme'
+
+const getInitialColorScheme = (): ColorSchemeId => {
+  try {
+    const stored = window.localStorage.getItem(colorSchemeStorageKey)
+    if (colorSchemes.some((scheme) => scheme.id === stored)) return stored as ColorSchemeId
+  } catch {
+    // Browser privacy settings may disable local storage.
+  }
+  return 'blue'
+}
+
+function ThemeSettingsControl({
+  className = '',
+  compact = false,
+}: {
+  className?: string
+  compact?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [scheme, setScheme] = useState<ColorSchemeId>(getInitialColorScheme)
+  const accountMenuRef = useRef<HTMLDivElement>(null)
+  const activeScheme = colorSchemes.find((item) => item.id === scheme) ?? colorSchemes[0]
+
+  useEffect(() => {
+    document.documentElement.dataset.colorScheme = scheme
+    try {
+      window.localStorage.setItem(colorSchemeStorageKey, scheme)
+    } catch {
+      // Keep the selected theme for this session when persistence is unavailable.
+    }
+  }, [scheme])
+
+  useEffect(() => {
+    if (!accountMenuOpen) return
+    const closeAccountMenu = (event: PointerEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) setAccountMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', closeAccountMenu)
+    return () => document.removeEventListener('pointerdown', closeAccountMenu)
+  }, [accountMenuOpen])
+
+  return (
+    <>
+      <div className={`theme-settings-account-shell ${compact ? 'compact' : ''}`} ref={accountMenuRef}>
+        <button
+          className={`account theme-settings-account-trigger ${compact ? 'compact' : ''} ${className}`.trim()}
+          type="button"
+          title={compact ? '林店长' : undefined}
+          aria-label="打开账户菜单"
+          aria-haspopup="menu"
+          aria-expanded={accountMenuOpen}
+          onClick={() => setAccountMenuOpen((current) => !current)}
+        >
+          <span>林</span>
+          {!compact && <div><strong>林店长</strong><small>杭州西湖店</small></div>}
+        </button>
+        {accountMenuOpen && (
+          <div className="account-settings-menu" role="menu" aria-label="账户设置">
+            <small>设置</small>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAccountMenuOpen(false)
+                setOpen(true)
+              }}
+            >
+              <i><Palette size={16} /></i>
+              <span><strong>主题色</strong><small>{activeScheme.name}</small></span>
+              <b style={{ backgroundColor: activeScheme.colors[0] }} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </div>
+      {open && createPortal(
+        <div className="theme-settings-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
+          <section className="theme-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="theme-settings-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header>
+              <div><span><Palette size={16} />界面设置</span><h2 id="theme-settings-title">选择主题色系</h2></div>
+              <button className="icon-btn" type="button" aria-label="关闭界面设置" onClick={() => setOpen(false)}><X size={18} /></button>
+            </header>
+            <p>内容区域保持白色，仅调整按钮、选中态、图标和强调色。</p>
+            <div className="theme-scheme-list" role="radiogroup" aria-label="主题色系">
+              {colorSchemes.map((item) => (
+                <button
+                  className={scheme === item.id ? 'active' : ''}
+                  type="button"
+                  role="radio"
+                  aria-checked={scheme === item.id}
+                  key={item.id}
+                  onClick={() => setScheme(item.id)}
+                >
+                  <span className="theme-scheme-swatches" aria-hidden="true">
+                    {item.colors.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
+                  </span>
+                  <span><strong>{item.name}</strong><small>{item.description}</small></span>
+                  {scheme === item.id && <Check size={17} />}
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>,
+        document.body,
+      )}
+    </>
   )
 }
 
@@ -1894,7 +2375,7 @@ function CouponCenterPage({
     { name: '券批次管理', detail: '创建本地营销券，配置规则与库存', Icon: TicketPercent, href: '#/coupon-center/stocks' },
     { name: '用户领券记录', detail: '领取明细、券码、渠道和状态', Icon: Users, href: '#/coupon-center/claims' },
     { name: '核销管理', detail: '订单核销、抵扣和支付流水', Icon: Check, href: '#/coupon-center/redemptions' },
-    { name: '券使用报表', detail: '访问、领券、核销、GMV 和成本', Icon: BarChart3, href: '#/coupon-center/reports' },
+    { name: '券使用报表', detail: '活动浏览、领券、用券、营业额和优惠金额', Icon: BarChart3, href: '#/coupon-center/reports' },
     { name: '经营数据', detail: '订单、收入、时段和到店客流', Icon: LayoutDashboard, href: '#/coupon-center/operations' },
   ]
   const isStockPage = routeHash.startsWith('#/coupon-center/stocks')
@@ -1925,7 +2406,7 @@ function CouponCenterPage({
   const pageDescription = isOperationsPage
     ? '订单、营业额、时段结构、到店客流和经营趋势'
     : isCampaignManagePage
-    ? '管理从活动方案、领券页、券批次、投放渠道到复盘报表的完整私域营销链路。'
+    ? '统一管理活动方案、领券页、券批次、发布渠道和活动结果。'
     : isMemberPage
       ? '统一查看会员画像、消费贡献、账户资产和营销响应，为活动人群选择提供依据。'
     : isStockPage
@@ -1935,7 +2416,7 @@ function CouponCenterPage({
         : isRedemptionPage
           ? '管理到店支付后的优惠券核销流水，核对订单实付、优惠抵扣和微信支付回调状态。'
           : isUsageReportPage
-            ? '按活动、券批次和渠道汇总访问、领券、核销、GMV、优惠成本与转化效率。'
+            ? '按活动、券批次和渠道汇总浏览、领券、用券、营业额与优惠金额。'
             : '统一管理券批次、用户领券、订单核销和券使用报表。左侧菜单进入具体功能配置。'
   const openCouponPage = (href?: string) => {
     if (!href) return
@@ -2129,16 +2610,16 @@ function CouponCenterPage({
       id: 'MBR-20240318-05821', phone: '138****5821', name: '周女士', level: '金卡会员',
       tags: ['高价值会员', '午餐偏好', '领券未核销'], source: '微信群', joinStore: '杭州西湖店', joinDate: '2024.03.18',
       lastVisit: '2026.09.18 12:16', visits: '42', totalSpent: '¥3,286', avgSpent: '¥78', balance: '¥188', points: '1,360', coupons: '3 张',
-      lifecycle: '活跃会员', status: '正常', preference: '轻食套餐、鸡胸沙拉、青提茉莉', activePeriod: '工作日 11:30-13:00', reachability: '微信可触达',
+      lifecycle: '活跃会员', status: '正常', preference: '轻食套餐、鸡胸沙拉、青提茉莉', activePeriod: '工作日 11:30-13:00', reachability: '可微信联系',
       lastCoupon: '工作日午餐轻食券', lastCampaign: '工作日午餐轻食活动',
-      suggestion: '午餐偏好明确，最近消费稳定。建议继续投放工作日午餐券，并避免重复发放全时段优惠。',
+      suggestion: '午餐偏好明确，最近消费稳定。建议继续发送工作日午餐券，并避免重复发放全时段优惠。',
       activities: [['09.18 12:16', '支付核销', '午餐券抵扣 ¥8，实付 ¥34'], ['09.18 12:08', '领取优惠券', '从微信群领取工作日午餐轻食券'], ['09.11 12:22', '到店消费', '轻食套餐订单实付 ¥46']],
     },
     {
       id: 'MBR-20240506-09012', phone: '186****9012', name: '陈先生', level: '银卡会员',
       tags: ['午餐偏好', '门店活跃'], source: '门店二维码', joinStore: '杭州西湖店', joinDate: '2024.05.06',
       lastVisit: '2026.09.18 12:02', visits: '18', totalSpent: '¥1,426', avgSpent: '¥79', balance: '¥0', points: '680', coupons: '1 张',
-      lifecycle: '活跃会员', status: '正常', preference: '牛油果套餐、无糖饮品', activePeriod: '工作日午餐', reachability: '微信可触达',
+      lifecycle: '活跃会员', status: '正常', preference: '牛油果套餐、无糖饮品', activePeriod: '工作日午餐', reachability: '可微信联系',
       lastCoupon: '工作日午餐轻食券', lastCampaign: '工作日午餐轻食活动',
       suggestion: '到店频率稳定，可尝试推荐双人午餐套餐，提高单次消费金额。',
       activities: [['09.18 12:02', '支付核销', '午餐券抵扣 ¥8，实付 ¥31'], ['09.18 11:54', '领取优惠券', '扫描门店二维码领券'], ['09.04 12:13', '到店消费', '牛油果轻食套餐实付 ¥42']],
@@ -2147,7 +2628,7 @@ function CouponCenterPage({
       id: 'MBR-20231211-06703', phone: '159****6703', name: '赵女士', level: '金卡会员',
       tags: ['高价值会员', '老客召回'], source: '店员邀请', joinStore: '杭州西湖店', joinDate: '2023.12.11',
       lastVisit: '2026.08.16 18:40', visits: '36', totalSpent: '¥4,862', avgSpent: '¥135', balance: '¥520', points: '2,180', coupons: '2 张',
-      lifecycle: '沉睡会员', status: '正常', preference: '家庭套餐、周末聚餐', activePeriod: '周末晚餐', reachability: '微信可触达',
+      lifecycle: '沉睡会员', status: '正常', preference: '家庭套餐、周末聚餐', activePeriod: '周末晚餐', reachability: '可微信联系',
       lastCoupon: '老客复购券', lastCampaign: '老客复购唤醒',
       suggestion: '超过 30 天未到店，但历史消费价值较高。建议使用老客复购券定向召回，不进行全量低价促销。',
       activities: [['09.18 11:47', '支付核销', '老客复购券抵扣 ¥10，实付 ¥58'], ['09.18 11:32', '领取优惠券', '通过店员私聊领取老客复购券'], ['08.16 18:40', '到店消费', '家庭套餐实付 ¥268']],
@@ -2156,7 +2637,7 @@ function CouponCenterPage({
       id: 'MBR-20240208-02286', phone: '133****2286', name: '吴女士', level: '银卡会员',
       tags: ['午餐偏好', '老客召回'], source: '门店二维码', joinStore: '杭州西湖店', joinDate: '2024.02.08',
       lastVisit: '2026.08.02 12:28', visits: '21', totalSpent: '¥1,764', avgSpent: '¥84', balance: '¥36', points: '760', coupons: '0 张',
-      lifecycle: '沉睡会员', status: '正常', preference: '低脂套餐、牛油果沙拉、无糖茶', activePeriod: '工作日 12:00-13:30', reachability: '短信可触达',
+      lifecycle: '沉睡会员', status: '正常', preference: '低脂套餐、牛油果沙拉、无糖茶', activePeriod: '工作日 12:00-13:30', reachability: '可短信联系',
       lastCoupon: '暂无可用券', lastCampaign: '工作日午餐轻食活动',
       suggestion: '午餐消费偏好清晰，已有 30 天以上未到店。适合用午餐回归礼做一次定向短信召回。',
       activities: [['08.02 12:28', '到店消费', '牛油果轻食套餐实付 ¥78'], ['07.14 11:56', '支付核销', '午餐券抵扣 ¥8，实付 ¥36'], ['07.14 11:43', '领取优惠券', '扫描门店二维码领取午餐券']],
@@ -2165,7 +2646,7 @@ function CouponCenterPage({
       id: 'MBR-20260912-03319', phone: '177****3319', name: '李先生', level: '普通会员',
       tags: ['新会员', '领券未核销'], source: '朋友圈', joinStore: '杭州西湖店', joinDate: '2026.09.12',
       lastVisit: '尚未完成首单', visits: '0', totalSpent: '¥0', avgSpent: '¥0', balance: '¥0', points: '0', coupons: '1 张',
-      lifecycle: '新会员', status: '正常', preference: '暂未形成', activePeriod: '暂未形成', reachability: '微信可触达',
+      lifecycle: '新会员', status: '正常', preference: '暂未形成', activePeriod: '暂未形成', reachability: '可微信联系',
       lastCoupon: '新客尝鲜券', lastCampaign: '新客尝鲜活动',
       suggestion: '已领券但尚未完成首单，建议在券到期前 24 小时发送一次到店提醒。',
       activities: [['09.18 11:21', '支付尝试', '订单未匹配优惠券，待复核'], ['09.12 10:46', '领取优惠券', '从朋友圈领取新客尝鲜券'], ['09.12 10:44', '注册会员', '通过活动页完成微信授权']],
@@ -2174,7 +2655,7 @@ function CouponCenterPage({
       id: 'MBR-20240126-04276', phone: '136****4276', name: '孙女士', level: '铂金会员',
       tags: ['高价值会员', '宴请偏好'], source: '小程序', joinStore: '杭州西湖店', joinDate: '2024.01.26',
       lastVisit: '2026.09.21 19:06', visits: '51', totalSpent: '¥12,680', avgSpent: '¥249', balance: '¥1,260', points: '5,420', coupons: '4 张',
-      lifecycle: '活跃会员', status: '正常', preference: '包间、宴请套餐、招牌烤鸭', activePeriod: '周末晚餐', reachability: '微信可触达',
+      lifecycle: '活跃会员', status: '正常', preference: '包间、宴请套餐、招牌烤鸭', activePeriod: '周末晚餐', reachability: '可微信联系',
       lastCoupon: '周末宴请券', lastCampaign: '周末宴请营销活动',
       suggestion: '高价值宴请会员，建议提供预约和专属菜品权益，减少单纯价格优惠。',
       activities: [['09.21 19:06', '到店消费', '周末宴请订单实付 ¥1,286'], ['09.20 16:18', '预约包间', '预订周六 8 人包间'], ['09.18 09:20', '领取优惠券', '领取周末宴请券']],
@@ -2183,9 +2664,9 @@ function CouponCenterPage({
       id: 'MBR-20230819-07846', phone: '188****7846', name: '王先生', level: '银卡会员',
       tags: ['老客召回', '价格敏感'], source: '收银台注册', joinStore: '杭州西湖店', joinDate: '2023.08.19',
       lastVisit: '2026.06.08 12:35', visits: '14', totalSpent: '¥986', avgSpent: '¥70', balance: '¥0', points: '320', coupons: '0 张',
-      lifecycle: '流失预警', status: '正常', preference: '满减套餐、工作日午餐', activePeriod: '工作日午餐', reachability: '短信可触达',
+      lifecycle: '流失预警', status: '正常', preference: '满减套餐、工作日午餐', activePeriod: '工作日午餐', reachability: '可短信联系',
       lastCoupon: '暂无可用券', lastCampaign: '未参与近期活动',
-      suggestion: '超过 90 天未消费，建议先使用低成本内容触达验证意向，再决定是否发放召回券。',
+      suggestion: '超过 90 天未消费，建议先发一条普通提醒看看顾客是否有兴趣，再决定是否发放召回券。',
       activities: [['06.08 12:35', '到店消费', '午餐套餐实付 ¥66'], ['05.20 10:10', '优惠券过期', '满59减10元券未使用'], ['04.27 12:18', '到店消费', '轻食套餐实付 ¥72']],
     },
   ]
@@ -2212,7 +2693,7 @@ function CouponCenterPage({
     {
       id: 'CMP-20260918-001',
       name: '工作日午餐轻食活动',
-      goal: '午高峰转化',
+      goal: '午高峰多卖几单',
       audience: '周边上班族、新老会员',
       channels: '朋友圈、微信群、门店二维码',
       coupon: '满39减8',
@@ -2431,7 +2912,7 @@ function CouponCenterPage({
       status: '正常',
       preference: '工作日午餐、轻食套餐',
       activePeriod: '工作日 11:30-13:30',
-      reachability: '微信可触达',
+      reachability: '可微信联系',
       lastCoupon: coupon,
       lastCampaign: '工作日午餐轻食活动',
       suggestion: claimStatus === '已核销'
@@ -2529,14 +3010,14 @@ function CouponCenterPage({
   const lowestReportChannel = reportChannelRows[reportChannelRows.length - 1]
   const reportFindings: Array<[string, string]> = reportChannel === 'all'
     ? [
-        [`${bestReportChannel?.row[1]}转化质量最高`, `核销率 ${bestReportChannel?.rate.toFixed(1)}%，建议继续保留这一高质量领券入口。`],
-        [`${topGmvReportChannel?.row[1]}贡献 GMV 最高`, `当前周期带动 GMV ${topGmvReportChannel?.row[6]}，可作为后续活动的重点投放渠道。`],
-        [`${lowestReportChannel?.row[1]}仍有转化空间`, `当前核销率 ${lowestReportChannel?.rate.toFixed(1)}%，建议优化入口文案并增加到期提醒。`],
+        [`${bestReportChannel?.row[1]}领券后到店最多`, `用券率 ${bestReportChannel?.rate.toFixed(1)}%，建议继续保留这一领券入口。`],
+        [`${topGmvReportChannel?.row[1]}带来营业额最高`, `当前周期带动营业额 ${topGmvReportChannel?.row[6]}，后续活动可以优先使用这个渠道。`],
+        [`${lowestReportChannel?.row[1]}还有提升空间`, `当前用券率 ${lowestReportChannel?.rate.toFixed(1)}%，建议把入口文案说得更清楚，并增加到期提醒。`],
       ]
     : [
-        [`${reportChannel}转化概况`, `${reportMetrics.visits.toLocaleString('zh-CN')} 次访问带来 ${reportMetrics.claims.toLocaleString('zh-CN')} 次领券，领取率 ${reportClaimRate.toFixed(1)}%。`],
-        [`${reportChannel}收入贡献`, `当前周期带动 GMV ${formatReportMoney(reportMetrics.gmv)}，优惠投入产出 ${reportRoi.toFixed(1)}x。`],
-        ['后续运营建议', reportUseRate >= 45 ? '当前核销表现较好，建议保持投放并适当扩大触达人群。' : '建议增加领券到期提醒，提升已领券用户的到店核销率。'],
+        [`${reportChannel}顾客参与情况`, `${reportMetrics.visits.toLocaleString('zh-CN')} 次浏览带来 ${reportMetrics.claims.toLocaleString('zh-CN')} 次领券，领取率 ${reportClaimRate.toFixed(1)}%。`],
+        [`${reportChannel}带来的营业额`, `当前周期带动营业额 ${formatReportMoney(reportMetrics.gmv)}，每优惠 1 元带来 ${reportRoi.toFixed(1)} 元营业额。`],
+        ['后续经营建议', reportUseRate >= 45 ? '当前用券情况较好，建议继续使用这个渠道，并适当让更多顾客看到。' : '建议增加领券到期提醒，让更多已领券顾客到店使用。'],
       ]
   const applyCustomReportRange = () => {
     if (!customReportStart || !customReportEnd) {
@@ -2687,7 +3168,7 @@ function CouponCenterPage({
     )
   }
   const handleReportExport = () => {
-    const header = ['券名称', '渠道', '访问', '领券', '核销', '核销率', 'GMV', '优惠成本', '投入产出']
+    const header = ['券名称', '渠道', '浏览', '领券', '用券', '用券率', '带动营业额', '优惠金额', '每1元优惠带来营业额']
     const exportRows = currentReportRows.map((row) => [
       ...row,
       `${(parseReportMoney(row[6]) / parseReportMoney(row[7])).toFixed(1)}x`,
@@ -2789,6 +3270,9 @@ function CouponCenterPage({
             </button>
           ))}
         </nav>
+        <div className="coupon-sidebar-account">
+          <ThemeSettingsControl compact={sidebarCollapsed && !isMobileLayout} />
+        </div>
       </aside>
 
       {mobileSidebarOpen && (
@@ -2938,12 +3422,12 @@ function CouponCenterPage({
                       />
                       <span className="member-identity"><strong>{member.name}</strong><button type="button" onClick={() => setSelectedMemberPhone(member.phone)}>{member.phone}</button></span>
                     </span>
-                    <span data-label="等级">{member.level}</span>
+                    <span data-label="等级"><CopyableEllipsis value={member.level} /></span>
                     <span className="member-tags" data-label="标签">{member.tags.slice(0, 2).map((tag) => <b key={tag}>{tag}</b>)}</span>
                     <span data-label="生命周期"><StatusBadge value={member.lifecycle} /></span>
-                    <span data-label="最近消费">{member.lastVisit}</span>
-                    <span data-label="消费次数">{member.visits}</span>
-                    <span data-label="累计消费">{member.totalSpent}</span>
+                    <span data-label="最近消费"><CopyableEllipsis value={member.lastVisit} /></span>
+                    <span data-label="消费次数"><CopyableEllipsis value={member.visits} /></span>
+                    <span data-label="累计消费"><CopyableEllipsis value={member.totalSpent} /></span>
                     <span className="member-assets" data-label="账户资产"><b>余额 {member.balance}</b><small>积分 {member.points} · 券 {member.coupons}</small></span>
                     <span className="member-action-cell" data-label="操作"><button className="member-detail-button" type="button" onClick={() => setSelectedMemberPhone(member.phone)}>查看详情</button></span>
                   </div>
@@ -2985,14 +3469,14 @@ function CouponCenterPage({
                 <div><span>领取时间</span><span>手机号</span><span>顾客</span><span>券名称</span><span>券码</span><span>来源渠道</span><span>状态</span><span>有效期至</span></div>
                 {pagedClaimRows.map(([time, phone, customer, coupon, code, channel, status, expire]) => (
                   <div key={code}>
-                    <span>{time}</span>
+                    <span><CopyableEllipsis value={time} /></span>
                     <span><button className="member-phone-link" type="button" onClick={() => setSelectedMemberPhone(phone)}>{phone}</button></span>
-                    <span>{customer}</span>
-                    <span>{coupon}</span>
-                    <span>{code}</span>
-                    <span>{channel}</span>
+                    <span><CopyableEllipsis value={customer} /></span>
+                    <span><CopyableEllipsis value={coupon} /></span>
+                    <span><CopyableEllipsis value={code} /></span>
+                    <span><CopyableEllipsis value={channel} /></span>
                     <span><StatusBadge value={status} /></span>
-                    <span>{expire}</span>
+                    <span><CopyableEllipsis value={expire} /></span>
                   </div>
                 ))}
               </div>
@@ -3010,7 +3494,7 @@ function CouponCenterPage({
             <section className="coupon-admin-metrics">
               {[
                 ['核销订单', '47', '微信支付自动抵扣'],
-                ['带动 GMV', '¥1,974', '实收 ¥1,598'],
+                ['带动营业额', '¥1,974', '实际收款 ¥1,598'],
                 ['优惠成本', '¥376', '微信商家券抵扣'],
                 ['平均客单价', '¥42', '47 笔核销订单'],
               ].map(([label, value, note]) => (
@@ -3038,14 +3522,14 @@ function CouponCenterPage({
                 <div><span>时间</span><span>订单号</span><span>用户</span><span>券名称</span><span>订单金额</span><span>优惠</span><span>实付</span><span>支付</span><span>状态</span></div>
                 {redemptionRecords.map(([time, orderNo, user, coupon, amount, discount, paid, payType, status]) => (
                   <div key={orderNo}>
-                    <span>{time}</span>
-                    <span>{orderNo}</span>
-                    <span>{user}</span>
-                    <span>{coupon}</span>
-                    <span>{amount}</span>
-                    <span>{discount}</span>
-                    <span>{paid}</span>
-                    <span>{payType}</span>
+                    <span><CopyableEllipsis value={time} /></span>
+                    <span><CopyableEllipsis value={orderNo} /></span>
+                    <span><CopyableEllipsis value={user} /></span>
+                    <span><CopyableEllipsis value={coupon} /></span>
+                    <span><CopyableEllipsis value={amount} /></span>
+                    <span><CopyableEllipsis value={discount} /></span>
+                    <span><CopyableEllipsis value={paid} /></span>
+                    <span><CopyableEllipsis value={payType} /></span>
                     <span><StatusBadge value={status} /></span>
                   </div>
                 ))}
@@ -3102,9 +3586,9 @@ function CouponCenterPage({
               {([
                 ['访问人数', reportMetrics.visits.toLocaleString('zh-CN'), reportRange === 'custom' ? `${customReportDays} 天累计` : `${reportPeriodNote} +12.6%`, BarChart3, 'up'],
                 ['领券人数', reportMetrics.claims.toLocaleString('zh-CN'), `领取率 ${reportClaimRate.toFixed(1)}%`, Users, 'neutral'],
-                ['核销订单', reportMetrics.uses.toLocaleString('zh-CN'), `核销率 ${reportUseRate.toFixed(1)}%`, ClipboardCheck, 'neutral'],
-                ['带动 GMV', formatReportMoney(reportMetrics.gmv), reportRange === 'custom' ? `${customReportDays} 天累计` : `${reportPeriodNote} +18.2%`, CircleDollarSign, 'up'],
-                ['优惠成本', formatReportMoney(reportMetrics.cost), `投入产出 ${reportRoi.toFixed(1)}x`, TicketPercent, 'neutral'],
+                ['用券订单', reportMetrics.uses.toLocaleString('zh-CN'), `用券率 ${reportUseRate.toFixed(1)}%`, ClipboardCheck, 'neutral'],
+                ['带动营业额', formatReportMoney(reportMetrics.gmv), reportRange === 'custom' ? `${customReportDays} 天累计` : `${reportPeriodNote} +18.2%`, CircleDollarSign, 'up'],
+                ['优惠金额', formatReportMoney(reportMetrics.cost), `每优惠 1 元带来 ${reportRoi.toFixed(1)} 元营业额`, TicketPercent, 'neutral'],
               ] as Array<[string, string, string, LucideIcon, string]>).map(([label, value, note, Icon, tone]) => (
                 <article key={label}>
                   <span className="coupon-report-kpi-icon"><Icon size={16} /></span>
@@ -3133,12 +3617,12 @@ function CouponCenterPage({
               </article>
 
               <article className="coupon-report-module coupon-report-funnel">
-                <div className="coupon-report-module-head"><div><h2>整体转化漏斗</h2><small>从入口访问到支付核销</small></div></div>
+                <div className="coupon-report-module-head"><div><h2>顾客参与情况</h2><small>从看到活动、领券到到店用券</small></div></div>
                 <div className="coupon-funnel-list">
                   {[
                     ['访问', reportMetrics.visits.toLocaleString('zh-CN'), '100%', 100],
                     ['领券', reportMetrics.claims.toLocaleString('zh-CN'), `${reportClaimRate.toFixed(1)}%`, Math.max(46, reportClaimRate * 1.65)],
-                    ['核销', reportMetrics.uses.toLocaleString('zh-CN'), `${reportOverallRate.toFixed(1)}%`, Math.max(28, reportOverallRate * 2.3)],
+                    ['用券', reportMetrics.uses.toLocaleString('zh-CN'), `${reportOverallRate.toFixed(1)}%`, Math.max(28, reportOverallRate * 2.3)],
                   ].map(([label, value, rate, width]) => (
                     <div key={label}>
                       <span>{label}</span>
@@ -3148,13 +3632,13 @@ function CouponCenterPage({
                     </div>
                   ))}
                 </div>
-                <div className="coupon-funnel-summary"><span>领券后核销率<strong>{reportUseRate.toFixed(1)}%</strong></span><span>优惠投入产出<strong>{reportRoi.toFixed(1)}x</strong></span></div>
+                <div className="coupon-funnel-summary"><span>领券后用券率<strong>{reportUseRate.toFixed(1)}%</strong></span><span>每优惠 1 元带来<strong>{reportRoi.toFixed(1)} 元营业额</strong></span></div>
               </article>
             </section>
 
             <section className="coupon-report-analysis-grid">
               <article className="coupon-report-module coupon-report-channels">
-                <div className="coupon-report-module-head"><div><h2>渠道表现</h2><small>按核销率排序，识别高质量入口</small></div></div>
+                <div className="coupon-report-module-head"><div><h2>各渠道带客情况</h2><small>按用券率排序，看哪个入口更有效</small></div></div>
                 <div className="coupon-channel-performance">
                   {reportChannelRows.map(({ row, rate }, index) => (
                     <div key={`${row[0]}-${row[1]}`}>
@@ -3177,16 +3661,16 @@ function CouponCenterPage({
 
             <article className="coupon-report-module coupon-report-detail">
               <div className="coupon-report-module-head">
-                <div><h2>券批次与渠道明细</h2><small>核对访问、领券、核销、GMV 与优惠成本</small></div>
+                <div><h2>券批次与渠道明细</h2><small>核对浏览、领券、用券、营业额与优惠金额</small></div>
                 <span>数据更新时间：2026.09.29 11:08</span>
               </div>
               <div className="coupon-record-table report report-advanced-table">
-                <div><span>券名称</span><span>渠道</span><span>访问</span><span>领券</span><span>核销</span><span>核销率</span><span>GMV</span><span>成本</span><span>投入产出</span></div>
+                <div><span>券名称</span><span>渠道</span><span>浏览</span><span>领券</span><span>用券</span><span>用券率</span><span>营业额</span><span>优惠</span><span>每1元优惠带来</span></div>
                 {currentReportRows.map(([coupon, channel, visits, claims, uses, rate, gmv, cost]) => (
                   <div key={`${coupon}-${channel}`}>
-                    <span>{coupon}</span><span>{channel}</span><span>{visits}</span><span>{claims}</span><span>{uses}</span>
+                    <span><CopyableEllipsis value={coupon} /></span><span><CopyableEllipsis value={channel} /></span><span><CopyableEllipsis value={visits} /></span><span><CopyableEllipsis value={claims} /></span><span><CopyableEllipsis value={uses} /></span>
                     <span><b className={Number.parseFloat(rate) >= 40 ? 'high' : 'normal'}>{rate}</b></span>
-                    <span>{gmv}</span><span>{cost}</span><span><strong>{(parseReportMoney(gmv) / parseReportMoney(cost)).toFixed(1)}x</strong></span>
+                    <span><CopyableEllipsis value={gmv} /></span><span><CopyableEllipsis value={cost} /></span><span><strong><CopyableEllipsis value={`${(parseReportMoney(gmv) / parseReportMoney(cost)).toFixed(1)} 元`} /></strong></span>
                   </div>
                 ))}
               </div>
@@ -3198,7 +3682,7 @@ function CouponCenterPage({
               <div className="coupon-panel-head coupon-panel-head-action">
                 <div>
                   <h2>活动列表</h2>
-                  <small>活动、券、页面、投放和复盘统一管理</small>
+                  <small>活动、券、页面、发布和结果统一管理</small>
                 </div>
                 <button type="button" onClick={() => openCampaignForm()}>新建活动</button>
               </div>
@@ -3248,21 +3732,21 @@ function CouponCenterPage({
                   <span>渠道</span>
                   <span>优惠</span>
                   <span>访问 / 领券 / 核销</span>
-                  <span>GMV / 成本</span>
+                  <span>营业额 / 优惠</span>
                   <span>状态</span>
                   <span>操作</span>
                 </div>
                 {filteredCampaigns.map((campaign) => (
                   <div key={campaign.id}>
                     <span>
-                      <strong>{campaign.name}</strong>
-                      <em>{campaign.id}</em>
+                      <strong><CopyableEllipsis value={campaign.name} /></strong>
+                      <em><CopyableEllipsis value={campaign.id} /></em>
                     </span>
-                    <span>{campaign.goal}</span>
-                    <span>{campaign.channels}</span>
-                    <span>{campaign.coupon}</span>
-                    <span>{campaign.visits} / {campaign.claims} / {campaign.uses}</span>
-                    <span>{campaign.gmv} / {campaign.cost}</span>
+                    <span><CopyableEllipsis value={campaign.goal} /></span>
+                    <span><CopyableEllipsis value={campaign.channels} /></span>
+                    <span><CopyableEllipsis value={campaign.coupon} /></span>
+                    <span><CopyableEllipsis value={`${campaign.visits} / ${campaign.claims} / ${campaign.uses}`} /></span>
+                    <span><CopyableEllipsis value={`${campaign.gmv} / ${campaign.cost}`} /></span>
                     <span><StatusBadge value={campaign.status} /></span>
                     <div className="campaign-row-actions">
                       <div className="campaign-action-line campaign-info-actions">
@@ -3369,13 +3853,13 @@ function CouponCenterPage({
               {couponStocks.map((stock) => (
                 <div key={stock.localStockNo}>
                   <span data-label="券批次">
-                    <strong>{stock.name}</strong>
-                    <em>{stock.localStockNo}</em>
+                    <strong><CopyableEllipsis value={stock.name} /></strong>
+                    <em><CopyableEllipsis value={stock.localStockNo} /></em>
                   </span>
-                  <span data-label="优惠规则">{stock.rule}</span>
-                  <span data-label="库存">{stock.stock} / 余 {stock.available}</span>
-                  <span data-label="领券 / 核销">{stock.claimed} / {stock.used}</span>
-                  <span data-label="微信券批次号">{stock.stockId}</span>
+                  <span data-label="优惠规则"><CopyableEllipsis value={stock.rule} /></span>
+                  <span data-label="库存"><CopyableEllipsis value={`${stock.stock} / 余 ${stock.available}`} /></span>
+                  <span data-label="领券 / 核销"><CopyableEllipsis value={`${stock.claimed} / ${stock.used}`} /></span>
+                  <span data-label="微信券批次号"><CopyableEllipsis value={stock.stockId} /></span>
                   <span data-label="同步"><StatusBadge value={stock.sync} /></span>
                   <span data-label="状态"><StatusBadge value={stock.status} /></span>
                   <div className="campaign-row-actions coupon-stock-actions" data-label="操作">
@@ -3429,9 +3913,9 @@ function CouponCenterPage({
               {[
                 ['访问人数', '386', '较昨日 +28.7%'],
                 ['领券人数', '128', '领取率 33.2%'],
-                ['核销订单', '47', '核销率 36.7%'],
-                ['带动 GMV', '¥1,974', '实收 ¥1,598'],
-                ['优惠成本', '¥376', '投入产出 5.3x'],
+                ['用券订单', '47', '用券率 36.7%'],
+                ['带动营业额', '¥1,974', '实际收款 ¥1,598'],
+                ['优惠金额', '¥376', '每优惠 1 元带来 5.3 元营业额'],
               ].map(([label, value, note]) => (
                 <div key={label}>
                   <span>{label}</span>
@@ -3487,7 +3971,7 @@ function CouponCenterPage({
                     <div key={row[0]}>
                       {row.map((cell, index) => (
                         <span key={`${row[0]}-${cell}`}>
-                          {index === row.length - 1 ? <StatusBadge value={String(cell)} /> : cell}
+                          {index === row.length - 1 ? <StatusBadge value={String(cell)} /> : <CopyableEllipsis value={String(cell)} />}
                         </span>
                       ))}
                     </div>
@@ -3559,7 +4043,7 @@ function CouponCenterPage({
                 <dl>
                   {[
                     ['会员等级', selectedMember.level], ['入会时间', selectedMember.joinDate], ['会员来源', selectedMember.source],
-                    ['归属门店', selectedMember.joinStore], ['会员状态', selectedMember.status], ['触达状态', selectedMember.reachability],
+                    ['归属门店', selectedMember.joinStore], ['会员状态', selectedMember.status], ['联系状态', selectedMember.reachability],
                   ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
                 </dl>
               </article>
@@ -3605,7 +4089,7 @@ function CouponCenterPage({
           <form className="coupon-modal member-sms-modal" onSubmit={handleMemberSmsSubmit}>
             <div className="coupon-modal-head member-sms-head">
               <div>
-                <span>会员批量触达</span>
+                <span>批量联系会员</span>
                 <h2>发送推广短信</h2>
                 <small>已选择 {selectedSmsMembers.length} 位会员，短信将携带可点击的营销活动链接。</small>
               </div>
@@ -3675,7 +4159,7 @@ function CouponCenterPage({
               <label><span>活动名称</span><input name="campaignName" defaultValue={editingCampaign?.name ?? '周末宴请营销活动'} /></label>
               <label><span>活动目标</span><input name="goal" defaultValue={editingCampaign?.goal ?? '提升周末到店'} /></label>
               <label className="wide"><span>目标人群</span><input name="audience" defaultValue={editingCampaign?.audience ?? '家庭聚餐、商务宴请、老会员'} /></label>
-              <label className="wide"><span>投放渠道</span><input name="channels" defaultValue={editingCampaign?.channels ?? '微信群、朋友圈、门店二维码'} /></label>
+              <label className="wide"><span>发布渠道</span><input name="channels" defaultValue={editingCampaign?.channels ?? '微信群、朋友圈、门店二维码'} /></label>
               <label><span>关联优惠</span><input name="coupon" defaultValue={editingCampaign?.coupon ?? '满499减80'} /></label>
               <label><span>领券页</span><input name="claimPage" defaultValue={editingCampaign?.claimPage ?? '周末宴请会员领券页'} /></label>
               <label><span>券批次</span><input name="stockName" defaultValue={editingCampaign?.stockName ?? '周末宴请券'} /></label>
@@ -3700,7 +4184,7 @@ function CouponCenterPage({
           <section className="coupon-modal campaign-end-confirm" role="dialog" aria-modal="true" aria-label="确认结束活动">
             <span className="campaign-end-confirm-icon"><CircleStop size={22} /></span>
             <h2>确认结束活动？</h2>
-            <p>“{endingCampaign.name}”结束后将停止继续投放，历史领取、核销和复盘数据仍会保留。</p>
+            <p>“{endingCampaign.name}”结束后将停止继续发布和发券，历史领券、用券和活动结果仍会保留。</p>
             <div className="coupon-form-actions">
               <button type="button" onClick={() => setEndingCampaignId(null)}>暂不结束</button>
               <button className="campaign-confirm-end" type="button" onClick={() => {
@@ -3747,8 +4231,8 @@ function CouponCenterPage({
                 ['访问人数', selectedCampaign.visits, ''],
                 ['领券人数', selectedCampaign.claims, ''],
                 ['核销订单', selectedCampaign.uses, ''],
-                ['带动 GMV', selectedCampaign.gmv, ''],
-                ['优惠成本', selectedCampaign.cost, `投入产出 ${selectedCampaignReturnRatio.toFixed(1)}x`],
+                ['带动营业额', selectedCampaign.gmv, ''],
+                ['优惠金额', selectedCampaign.cost, `每优惠 1 元带来 ${selectedCampaignReturnRatio.toFixed(1)} 元营业额`],
               ].map(([label, value, note]) => (
                 <div key={label}>
                   <span>{label}</span>
@@ -3761,7 +4245,7 @@ function CouponCenterPage({
               {[
                 ['活动编号', selectedCampaign.id],
                 ['目标人群', selectedCampaign.audience],
-                ['投放渠道', selectedCampaign.channels],
+                ['发布渠道', selectedCampaign.channels],
                 ['关联优惠', selectedCampaign.coupon],
                 ['领券页', selectedCampaign.claimPage],
                 ['关联券批次', selectedCampaign.stockName],
@@ -4522,6 +5006,10 @@ export default function App() {
   const assistantUnreadCount = availableAssistantInsights.length
 
   useEffect(() => {
+    document.documentElement.dataset.colorScheme = getInitialColorScheme()
+  }, [])
+
+  useEffect(() => {
     const syncRouteHash = () => setAppRouteHash(window.location.hash)
     window.addEventListener('hashchange', syncRouteHash)
     return () => window.removeEventListener('hashchange', syncRouteHash)
@@ -4782,16 +5270,24 @@ export default function App() {
     setHandledAssistantInsightIds((ids) => ids.includes(insight.id) ? ids : [...ids, insight.id])
   }
 
+  if (appRouteHash.split('?')[0] === '#/suggestions') {
+    return (
+      <SuggestionHistoryPage
+        readInsightIds={handledAssistantInsightIds}
+        allRead={assistantAllRead}
+        onMarkRead={handleAssistantInsight}
+      />
+    )
+  }
+
   if (appRouteHash === '#/reports/channel-profit') {
     return (
       <>
         <ReportPage report={channelReport} pinned={reportPinned} onPin={pinReportToCommon} />
-        {assistantMinimized && (
-          <div className="ai-report-header-tools">
-            <button className="icon-btn" type="button" title="通知" aria-label="通知"><Bell size={18} /></button>
-            <AiAssistantDockButton unreadCount={assistantUnreadCount} onClick={restoreAssistant} />
-          </div>
-        )}
+        <div className="ai-report-header-tools">
+          <button className="icon-btn" type="button" title="通知" aria-label="通知"><Bell size={18} /></button>
+          {assistantMinimized && <AiAssistantDockButton unreadCount={assistantUnreadCount} onClick={restoreAssistant} />}
+        </div>
         <AiBusinessAssistant
           open={assistantOpen}
           onOpenChange={setAssistantOpen}
@@ -4924,7 +5420,7 @@ export default function App() {
           )}
         </div>
         <div className="rail-footer">
-          <div className="account"><span>林</span><div><strong>林店长</strong><small>杭州西湖店</small></div></div>
+          <ThemeSettingsControl />
         </div>
       </aside>
 
@@ -5105,7 +5601,7 @@ export default function App() {
                 <div className="data-table" role="table" aria-label="分析明细">
                   <div role="row"><span>项目</span><span>结果</span><span>口径</span><span>状态</span></div>
                   {activeScenario.table.map((row) => (
-                    <div role="row" key={row[0]}>{row.map((cell) => <span key={cell}>{cell}</span>)}</div>
+                    <div role="row" key={row[0]}>{row.map((cell, cellIndex) => <span key={`${cell}-${cellIndex}`}><CopyableEllipsis value={cell} /></span>)}</div>
                   ))}
                 </div>
               )}
@@ -5220,7 +5716,7 @@ export default function App() {
                 ['券批次管理', '券批次、库存、规则和同步状态', TicketPercent, '#/coupon-center/stocks'],
                 ['用户领券记录', '领取用户、渠道、卡包入账状态', Users, '#/coupon-center/claims'],
                 ['核销管理', '订单实付、优惠抵扣、核销状态', WalletCards, '#/coupon-center/redemptions'],
-                ['券使用报表', '访问、领券、核销、GMV 和成本', BarChart3, '#/coupon-center/reports'],
+                ['券使用报表', '活动浏览、领券、用券、营业额和优惠金额', BarChart3, '#/coupon-center/reports'],
                 ['经营数据', '订单、收入、时段和到店客流', LayoutDashboard, '#/coupon-center/operations'],
               ] as Array<[string, string, LucideIcon, string]>).map(([name, detail, Icon, href]) => (
                 <button
@@ -5241,9 +5737,9 @@ export default function App() {
               {[
                 ['访问人数', '386', '+86', 'up'],
                 ['领券人数', '128', '领取率 33.2%', 'flat'],
-                ['核销订单', '47', '核销率 36.7%', 'flat'],
-                ['带动 GMV', '¥1,974', '+18.2%', 'up'],
-                ['优惠成本', '¥376', '投入产出 5.3x', 'flat'],
+                ['用券订单', '47', '用券率 36.7%', 'flat'],
+                ['带动营业额', '¥1,974', '+18.2%', 'up'],
+                ['优惠金额', '¥376', '每优惠 1 元带来 5.3 元营业额', 'flat'],
               ].map(([label, value, delta, trend]) => <div key={label}><span>{label}</span><strong>{value}</strong><small className={trend}>{delta}</small></div>)}
             </div>
           </section>

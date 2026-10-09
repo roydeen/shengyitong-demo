@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarDays,
   ChevronDown,
-  CloudRain,
-  Coffee,
   Download,
   LoaderCircle,
   ReceiptText,
@@ -13,6 +11,8 @@ import {
   Utensils,
   WalletCards,
 } from 'lucide-react'
+import { aiBusinessCategoryIcons, aiBusinessCategoryLabels } from './aiBusinessCategories'
+import CopyableEllipsis from './CopyableEllipsis'
 import {
   OPERATIONS_END_DATE,
   OPERATIONS_SEAT_COUNT,
@@ -391,12 +391,11 @@ export default function OperationsDashboard({
     {
       id: 'afternoon-tea-growth',
       tone: 'opportunity',
-      eyebrow: '时段机会',
+      category: 'growth_opportunity' as const,
       title: '下午茶场景常态化',
       summary: `近 ${advisoryStats.recentDays} 天下午时段日均实收 ${formatMoney(advisoryStats.afternoonDailySales)}，已有稳定消费需求。`,
       target: '目标：日均实收提升至 ¥1,600–¥1,800',
       actionLabel: '生成下午茶方案',
-      Icon: Coffee,
       metrics: [
         ['日均实收', formatMoney(advisoryStats.afternoonDailySales)],
         ['日均订单', `${advisoryStats.afternoonDailyOrders.toFixed(1)} 单`],
@@ -411,12 +410,11 @@ export default function OperationsDashboard({
     {
       id: 'rain-enterprise-delivery',
       tone: 'warning',
-      eyebrow: '天气预警',
+      category: 'growth_opportunity' as const,
       title: '恶劣天气企业外送',
       summary: `历史 ${advisoryStats.bigRainDays} 个大雨日的日均实收为 ${formatMoney(advisoryStats.bigRainDailySales)}，较其他天气低 ${advisoryStats.rainSalesDrop.toFixed(1)}%。`,
       target: '目标：首阶段挽回 20% 的雨天收入缺口',
       actionLabel: '生成天气触发方案',
-      Icon: CloudRain,
       metrics: [
         ['大雨日均实收', formatMoney(advisoryStats.bigRainDailySales)],
         ['其他天气日均', formatMoney(advisoryStats.otherWeatherDailySales)],
@@ -424,8 +422,8 @@ export default function OperationsDashboard({
       ],
       evidence: [
         '大雨主要影响自然到店，不应继续依赖到店折扣，而应让企业订单主动送达。',
-        '建议平时沉淀周边 1 公里企业的联系人、人数规模、常订时段和菜品偏好。',
-        '当次日 11:00–14:00 预报大雨时，于前一天 17:00 自动生成企业预约触达任务。',
+        '建议平时积累周边 1 公里企业的联系人、人数规模、常订时段和菜品偏好。',
+        '当次日 11:00–14:00 预报大雨时，于前一天 17:00 自动生成企业预约提醒任务。',
       ],
     },
   ].filter((item) => suggestionIds.includes(item.id))
@@ -489,14 +487,14 @@ export default function OperationsDashboard({
           </header>
           <div className="operations-insight-grid">
             {operationSuggestions.map((suggestion) => {
-              const Icon = suggestion.Icon
+              const Icon = aiBusinessCategoryIcons[suggestion.category]
               const expanded = expandedSuggestionId === suggestion.id
               const running = runningSuggestionId === suggestion.id
               return (
                 <article className={`operations-insight-card ${suggestion.tone}`} key={suggestion.id}>
                   <div className="operations-insight-title">
                     <span><Icon size={19} /></span>
-                    <div><small>{suggestion.eyebrow}</small><h3>{suggestion.title}</h3></div>
+                    <div><small>{aiBusinessCategoryLabels[suggestion.category]}</small><h3>{suggestion.title}</h3></div>
                   </div>
                   <p>{suggestion.summary}</p>
                   <div className="operations-insight-metrics">
@@ -634,13 +632,13 @@ export default function OperationsDashboard({
           <div><span>月份</span><span>订单笔数</span><span>营业实收</span><span>订单均价</span><span>堂食订单</span><span>到店人次</span><span>订单同比</span></div>
           {monthlyRows.map((item) => (
             <div key={item.month}>
-              <span>{item.month.replace('-', '年')}月</span>
-              <span>{formatNumber(item.totals.orders)}</span>
-              <span>{formatMoney(item.totals.sales)}</span>
-              <span>{formatMoney(item.totals.orders ? item.totals.sales / item.totals.orders : 0)}</span>
-              <span>{formatNumber(item.totals.dineInOrders)}</span>
-              <span>{formatNumber(item.totals.covers)}</span>
-              <span className={item.yoy?.tone ?? 'flat'}>{item.yoy?.text ?? '—'}</span>
+              <span><CopyableEllipsis value={`${item.month.replace('-', '年')}月`} /></span>
+              <span><CopyableEllipsis value={formatNumber(item.totals.orders)} /></span>
+              <span><CopyableEllipsis value={formatMoney(item.totals.sales)} /></span>
+              <span><CopyableEllipsis value={formatMoney(item.totals.orders ? item.totals.sales / item.totals.orders : 0)} /></span>
+              <span><CopyableEllipsis value={formatNumber(item.totals.dineInOrders)} /></span>
+              <span><CopyableEllipsis value={formatNumber(item.totals.covers)} /></span>
+              <span className={item.yoy?.tone ?? 'flat'}><CopyableEllipsis value={item.yoy?.text ?? '—'} /></span>
             </div>
           ))}
         </div>
